@@ -34,13 +34,20 @@ abstract class CrudController extends Controller
             });
         }
 
-        foreach (['status', 'priority', 'temperature', 'origin', 'owner_id'] as $filter) {
+        foreach (['status', 'priority', 'temperature', 'origin', 'type', 'payment_method', 'category', 'owner_id', 'client_id', 'lead_id'] as $filter) {
             if ($request->filled($filter)) {
                 $query->where($filter, $request->query($filter));
             }
         }
 
-        return $this->success($this->resource::collection($query->latest()->paginate((int) $request->query('per_page', 15))));
+        $sortBy = $request->query('sort_by', 'created_at');
+        $sortDir = strtolower($request->query('sort_dir', 'desc')) === 'asc' ? 'asc' : 'desc';
+
+        if (! in_array($sortBy, [...$query->getModel()->getFillable(), 'id', 'created_at', 'updated_at'], true)) {
+            $sortBy = 'created_at';
+        }
+
+        return $this->success($this->resource::collection($query->orderBy($sortBy, $sortDir)->paginate((int) $request->query('per_page', 15))));
     }
 
     protected function createRecord(Request $request, array $data)

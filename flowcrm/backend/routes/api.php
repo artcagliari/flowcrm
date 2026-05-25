@@ -53,7 +53,9 @@ Route::middleware(['auth:sanctum', 'current.company'])->group(function () {
     Route::put('settings', [SettingController::class, 'update']);
     Route::get('notifications', [NotificationController::class, 'index']);
     Route::patch('notifications/{notification}/read', [NotificationController::class, 'read']);
-    Route::get('users', [UserController::class, 'index']);
+    Route::get('profile', [UserController::class, 'profile']);
+    Route::put('profile', [UserController::class, 'updateProfile']);
+    Route::apiResource('users', UserController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::get('company', [CompanyController::class, 'show']);
     Route::put('company', [CompanyController::class, 'update']);
 });

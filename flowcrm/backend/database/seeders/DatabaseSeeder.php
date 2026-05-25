@@ -30,6 +30,8 @@ class DatabaseSeeder extends Seeder
 
         $company = Company::create(['name' => 'FlowCRM Demo', 'email' => 'admin@flowcrm.test']);
         $role = Role::create(['company_id' => $company->id, 'name' => 'dono']);
+        Role::create(['company_id' => $company->id, 'name' => 'admin_company']);
+        Role::create(['company_id' => $company->id, 'name' => 'agente']);
         $company->users()->attach($user->id, ['role_id' => $role->id]);
 
         foreach (['Novo lead', 'Primeiro contato', 'Qualificado', 'Proposta enviada', 'Negociação', 'Fechado', 'Perdido'] as $position => $name) {

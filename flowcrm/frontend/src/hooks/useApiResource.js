@@ -11,7 +11,7 @@ export function useApiResource(api, params = {}) {
     setLoading(false);
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [JSON.stringify(params)]);
 
   return { items, setItems, loading, reload: load };
 }

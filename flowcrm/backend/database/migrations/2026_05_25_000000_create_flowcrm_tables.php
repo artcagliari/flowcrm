@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             $table->string('status')->default('ativo')->after('password');
+            $table->boolean('is_superadmin')->default(false)->after('status');
         });
 
         Schema::create('personal_access_tokens', function (Blueprint $table) {
@@ -287,6 +288,7 @@ return new class extends Migration
         }
 
         Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn('is_superadmin');
             $table->dropColumn('status');
         });
     }

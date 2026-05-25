@@ -8,7 +8,7 @@ export default function AppLayout() {
   const [sidebar, setSidebar] = useState(false);
   const { user } = useAuth();
   return (
-    <div className="grid min-h-screen lg:grid-cols-[286px_minmax(0,1fr)]">
+    <div className="min-h-screen lg:pl-[286px]">
       <Sidebar open={sidebar} onClose={() => setSidebar(false)} user={user} />
       <div className="min-w-0 p-3 lg:p-5">
         <Navbar onMenu={() => setSidebar(true)} />

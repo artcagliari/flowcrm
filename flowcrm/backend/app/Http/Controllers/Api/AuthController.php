@@ -36,6 +36,8 @@ class AuthController extends Controller
 
             $company = Company::create(['name' => $data['company_name'], 'email' => $data['email']]);
             $role = Role::create(['company_id' => $company->id, 'name' => 'dono']);
+            Role::create(['company_id' => $company->id, 'name' => 'admin_company']);
+            Role::create(['company_id' => $company->id, 'name' => 'agente']);
             $company->users()->attach($user->id, ['role_id' => $role->id]);
 
             foreach (['Novo lead', 'Primeiro contato', 'Qualificado', 'Proposta enviada', 'Negociação', 'Fechado', 'Perdido'] as $position => $name) {
@@ -46,6 +48,11 @@ class AuthController extends Controller
         });
 
         [$user, $company, $token] = $result;
+        $user = [
+            ...$user->only(['id', 'name', 'email', 'status']),
+            'is_superadmin' => $user->is_superadmin,
+            'role' => 'dono',
+        ];
 
         return $this->success(compact('user', 'company', 'token'), 'Conta criada com sucesso.', 201);
     }
@@ -61,6 +68,11 @@ class AuthController extends Controller
 
         $company = $user->companies()->first();
         $token = $user->createToken('flowcrm')->plainTextToken;
+        $user = [
+            ...$user->only(['id', 'name', 'email', 'status']),
+            'is_superadmin' => $user->is_superadmin,
+            'role' => $company ? Role::find($company->pivot->role_id)?->name : null,
+        ];
 
         return $this->success(compact('user', 'company', 'token'), 'Login realizado com sucesso.');
     }
@@ -75,9 +87,22 @@ class AuthController extends Controller
     public function me(Request $request)
     {
         return $this->success([
-            'user' => $request->user(),
+            'user' => $this->serializeUser($request, $request->user()),
             'companies' => $request->user()->companies,
             'company' => $request->attributes->get('current_company'),
         ]);
+    }
+
+    private function serializeUser(Request $request, User $user): array
+    {
+        $company = $request->attributes->get('current_company');
+        $role = $company ? $user->companies()->where('companies.id', $company->id)->first()?->pivot?->role_id : null;
+        $roleName = $role ? Role::find($role)?->name : null;
+
+        return [
+            ...$user->only(['id', 'name', 'email', 'status']),
+            'is_superadmin' => $user->is_superadmin,
+            'role' => $roleName,
+        ];
     }
 }

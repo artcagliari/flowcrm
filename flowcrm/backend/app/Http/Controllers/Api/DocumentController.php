@@ -15,7 +15,17 @@ class DocumentController extends Controller
 
     public function index(Request $request)
     {
-        return $this->success(Document::where('company_id', $request->attributes->get('current_company')->id)->latest()->paginate(15));
+        $query = Document::where('company_id', $request->attributes->get('current_company')->id);
+
+        if ($request->filled('search')) {
+            $query->where('name', 'like', '%'.$request->query('search').'%');
+        }
+
+        if ($request->filled('category')) {
+            $query->where('category', $request->query('category'));
+        }
+
+        return $this->success($query->latest()->paginate(15));
     }
 
     public function store(StoreDocumentRequest $request)
@@ -45,7 +55,7 @@ class DocumentController extends Controller
     {
         abort_if($document->company_id !== $request->attributes->get('current_company')->id, 403);
         $document->delete();
-        return $this->success(null, 'Documento excluído com sucesso.');
+        return $this->success(null, 'Documento excluido com sucesso.');
     }
 
     public function download(Request $request, Document $document)

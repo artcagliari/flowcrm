@@ -22,9 +22,9 @@ class CurrentCompany
             ], 401);
         }
 
-        $company = $companyId
-            ? $user->companies()->whereKey($companyId)->first()
-            : $user->companies()->first();
+        $company = $user->is_superadmin
+            ? ($companyId ? Company::find($companyId) : $user->companies()->first())
+            : ($companyId ? $user->companies()->whereKey($companyId)->first() : $user->companies()->first());
 
         if (! $company) {
             return response()->json([
