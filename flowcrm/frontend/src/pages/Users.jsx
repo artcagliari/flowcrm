@@ -12,6 +12,11 @@ import Select from '../components/ui/Select';
 import useAuth from '../hooks/useAuth';
 
 const roleLabels = {
+  owner: 'Owner',
+  admin: 'Admin',
+  employee: 'Colaborador',
+  financial: 'Financeiro',
+  viewer: 'Visualizador',
   dono: 'Dono',
   admin_company: 'Admin company',
   agente: 'Agente',
@@ -23,7 +28,7 @@ const statusOptions = [
   { value: 'inativo', label: 'Inativo' },
 ];
 
-const blankUser = { name: '', email: '', password: '', status: 'ativo', role: 'agente' };
+const blankUser = { name: '', email: '', password: '', status: 'ativo', role: 'employee' };
 
 export default function Users() {
   const { user, refreshUser } = useAuth();
@@ -49,18 +54,18 @@ export default function Users() {
   useEffect(() => setProfile({ name: user?.name || '', email: user?.email || '', password: '' }), [user]);
 
   const orderedUsers = useMemo(() => [...users].sort((a, b) => {
-    const roleOrder = ['superadmin', 'dono', 'admin_company', 'agente'];
+    const roleOrder = ['superadmin', 'owner', 'admin', 'financial', 'employee', 'viewer', 'dono', 'admin_company', 'agente'];
     return roleOrder.indexOf(a.role) - roleOrder.indexOf(b.role) || a.name.localeCompare(b.name);
   }), [users]);
 
   function startCreate() {
     setEditingId(null);
-    setForm({ ...blankUser, role: roles.includes('agente') ? 'agente' : roles[0] });
+    setForm({ ...blankUser, role: roles.includes('employee') ? 'employee' : roles[0] });
   }
 
   function startEdit(member) {
     setEditingId(member.id);
-    setForm({ name: member.name, email: member.email, password: '', status: member.status || 'ativo', role: member.role || 'agente' });
+    setForm({ name: member.name, email: member.email, password: '', status: member.status || 'ativo', role: member.role || 'employee' });
   }
 
   async function saveUser(event) {
@@ -98,7 +103,7 @@ export default function Users() {
 
   return (
     <>
-      <PageHeader title="Usuarios" subtitle="Perfil, equipe, cargos e permissoes da empresa." />
+      <PageHeader title="Usuarios" subtitle="Gerencie quem pode acessar o CRM e suas permissoes." />
 
       {message && <div className="mb-4 rounded-2xl border border-sky-300/20 bg-sky-400/10 p-3 text-sm text-sky-100">{message}</div>}
 
@@ -124,7 +129,7 @@ export default function Users() {
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-bold">{editingId ? 'Editar usuario' : 'Novo usuario'}</h2>
-                <p className="text-sm text-slate-400">Dono, admin_company e superadmin gerenciam equipe.</p>
+                <p className="text-sm text-slate-400">Owner, admin e superadmin gerenciam equipe.</p>
               </div>
               {canManage && <Button variant="secondary" onClick={startCreate}><Plus size={16} /> Novo</Button>}
             </div>
@@ -153,7 +158,7 @@ export default function Users() {
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-bold">Equipe da empresa</h2>
-              <p className="text-sm text-slate-400">Cargos disponiveis: dono, admin_company, agente e superadmin.</p>
+              <p className="text-sm text-slate-400">Cargos disponiveis: owner, admin, colaborador, financeiro e visualizador.</p>
             </div>
             <span className="grid h-11 w-11 place-items-center rounded-2xl bg-blue-500/20 text-sky-100"><UserCog size={18} /></span>
           </div>

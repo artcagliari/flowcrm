@@ -9,8 +9,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('status')->default('ativo')->after('password');
+            $table->string('avatar')->nullable()->after('password');
+            $table->string('phone', 32)->nullable()->after('avatar');
+            $table->string('role', 40)->default('company_admin')->after('phone');
+            $table->string('status')->default('active')->after('password');
             $table->boolean('is_superadmin')->default(false)->after('status');
+            $table->timestamp('last_login_at')->nullable()->after('is_superadmin');
+            $table->softDeletes();
         });
 
         Schema::create('personal_access_tokens', function (Blueprint $table) {
@@ -27,13 +32,29 @@ return new class extends Migration
         Schema::create('companies', function (Blueprint $table) {
             $table->id();
             $table->string('name', 160);
+            $table->string('type', 24)->default('company');
+            $table->string('owner_name', 160)->nullable();
             $table->string('legal_name')->nullable();
             $table->string('document', 32)->nullable();
+            $table->string('profession', 120)->nullable();
             $table->string('email')->nullable();
             $table->string('phone', 32)->nullable();
+            $table->string('whatsapp', 32)->nullable();
+            $table->string('address')->nullable();
+            $table->string('city', 120)->nullable();
+            $table->string('state', 80)->nullable();
+            $table->string('zip_code', 20)->nullable();
+            $table->string('logo')->nullable();
             $table->string('logo_path')->nullable();
             $table->string('primary_color', 16)->default('#4F8CFF');
+            $table->string('status', 40)->default('active');
+            $table->string('plan_name', 120)->nullable();
+            $table->unsignedInteger('max_users')->nullable();
+            $table->date('starts_at')->nullable();
+            $table->date('expires_at')->nullable();
+            $table->text('notes')->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
 
         Schema::create('roles', function (Blueprint $table) {
@@ -51,11 +72,15 @@ return new class extends Migration
         });
 
         Schema::create('company_user', function (Blueprint $table) {
+            $table->id();
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('role_id')->nullable()->constrained()->nullOnDelete();
+            $table->string('role', 40)->default('company_admin');
+            $table->boolean('is_owner')->default(false);
+            $table->string('status', 40)->default('active');
             $table->timestamps();
-            $table->primary(['company_id', 'user_id']);
+            $table->unique(['company_id', 'user_id']);
         });
 
         Schema::create('role_permission', function (Blueprint $table) {
@@ -76,18 +101,22 @@ return new class extends Migration
         Schema::create('clients', function (Blueprint $table) {
             $table->id();
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('owner_id')->nullable()->constrained('users')->nullOnDelete();
             $table->string('name', 190);
             $table->string('phone', 32)->nullable();
             $table->string('whatsapp', 32)->nullable();
             $table->string('email')->nullable();
             $table->string('document', 32)->nullable();
+            $table->date('birth_date')->nullable();
             $table->string('address')->nullable();
             $table->string('city', 120)->nullable();
+            $table->string('state', 80)->nullable();
             $table->string('profession', 120)->nullable();
             $table->string('origin', 120)->nullable();
             $table->string('status', 40)->default('ativo')->index();
             $table->text('notes')->nullable();
+            $table->timestamp('last_contact_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });
@@ -117,14 +146,17 @@ return new class extends Migration
         Schema::create('tasks', function (Blueprint $table) {
             $table->id();
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('owner_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('client_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('lead_id')->nullable()->constrained()->nullOnDelete();
             $table->string('title', 190);
             $table->text('description')->nullable();
+            $table->date('due_date')->nullable();
             $table->timestamp('due_at')->nullable();
             $table->string('priority', 20)->default('media');
             $table->string('status', 30)->default('pendente');
+            $table->timestamp('completed_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });
@@ -132,14 +164,19 @@ return new class extends Migration
         Schema::create('appointments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('owner_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('client_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('lead_id')->nullable()->constrained()->nullOnDelete();
             $table->string('title', 190);
+            $table->text('description')->nullable();
             $table->string('type', 40)->default('reuniao');
             $table->string('status', 40)->default('agendado');
+            $table->timestamp('start_at')->nullable();
+            $table->timestamp('end_at')->nullable();
             $table->timestamp('starts_at');
             $table->timestamp('ends_at')->nullable();
+            $table->string('location')->nullable();
             $table->timestamp('reminder_at')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
@@ -152,6 +189,9 @@ return new class extends Migration
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('client_id')->nullable()->constrained()->cascadeOnDelete();
             $table->foreignId('lead_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->text('content')->nullable();
+            $table->string('type', 40)->default('geral');
+            $table->boolean('is_private')->default(false);
             $table->text('body');
             $table->timestamps();
             $table->softDeletes();
@@ -160,14 +200,18 @@ return new class extends Migration
         Schema::create('documents', function (Blueprint $table) {
             $table->id();
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('client_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('lead_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('uploaded_by')->nullable()->constrained('users')->nullOnDelete();
             $table->string('name', 190);
+            $table->string('original_name', 190)->nullable();
             $table->string('category', 60)->default('outros');
             $table->string('path');
             $table->string('mime_type', 120)->nullable();
+            $table->unsignedBigInteger('size')->default(0);
             $table->unsignedBigInteger('size_bytes')->default(0);
+            $table->text('description')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });
@@ -176,6 +220,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
             $table->foreignId('client_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->string('description', 190);
             $table->decimal('amount', 12, 2);
             $table->string('category', 120)->nullable();
@@ -191,6 +236,7 @@ return new class extends Migration
         Schema::create('expenses', function (Blueprint $table) {
             $table->id();
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->string('description', 190);
             $table->decimal('amount', 12, 2);
             $table->string('category', 120)->nullable();
@@ -208,9 +254,11 @@ return new class extends Migration
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->nullable()->constrained()->cascadeOnDelete();
             $table->string('title', 190);
+            $table->text('message')->nullable();
             $table->text('body')->nullable();
             $table->string('type', 80)->nullable();
             $table->timestamp('read_at')->nullable();
+            $table->string('action_url')->nullable();
             $table->timestamps();
         });
 
@@ -218,7 +266,9 @@ return new class extends Migration
             $table->id();
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('client_id')->nullable()->constrained()->nullOnDelete();
             $table->nullableMorphs('subject');
+            $table->string('action', 120)->default('registro');
             $table->string('description');
             $table->json('metadata')->nullable();
             $table->timestamps();
@@ -268,6 +318,9 @@ return new class extends Migration
         Schema::create('settings', function (Blueprint $table) {
             $table->id();
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
+            $table->string('key', 120)->nullable();
+            $table->json('value')->nullable();
+            $table->string('type', 40)->default('string');
             $table->string('setting_key', 120);
             $table->json('setting_value')->nullable();
             $table->timestamps();

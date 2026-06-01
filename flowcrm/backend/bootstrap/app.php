@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(fn (Request $request) => null);
         $middleware->alias([
             'current.company' => \App\Http\Middleware\CurrentCompany::class,
+            'super.admin' => \App\Http\Middleware\EnsureUserIsSuperAdmin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

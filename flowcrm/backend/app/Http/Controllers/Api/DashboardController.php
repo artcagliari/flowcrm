@@ -8,7 +8,6 @@ use App\Models\Activity;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\Expense;
-use App\Models\Lead;
 use App\Models\Payment;
 use App\Models\Task;
 use Illuminate\Http\Request;
@@ -20,30 +19,71 @@ class DashboardController extends Controller
     public function __invoke(Request $request)
     {
         $companyId = $request->attributes->get('current_company')->id;
-        $revenue = Payment::where('company_id', $companyId)->whereMonth('paid_at', now()->month)->sum('amount');
-        $expenses = Expense::where('company_id', $companyId)->whereMonth('paid_at', now()->month)->sum('amount');
-        $converted = Lead::where('company_id', $companyId)->where('status', 'convertido')->count();
-        $leadTotal = max(Lead::where('company_id', $companyId)->count(), 1);
+        $month = now()->month;
+        $year = now()->year;
+
+        $revenue = Payment::where('company_id', $companyId)
+            ->where('status', 'pago')
+            ->whereMonth('paid_at', $month)
+            ->whereYear('paid_at', $year)
+            ->sum('amount');
+
+        $expenses = Expense::where('company_id', $companyId)
+            ->where('status', 'pago')
+            ->whereMonth('paid_at', $month)
+            ->whereYear('paid_at', $year)
+            ->sum('amount');
 
         return $this->success([
             'stats' => [
                 'clients' => Client::where('company_id', $companyId)->count(),
-                'leads' => Lead::where('company_id', $companyId)->count(),
-                'new_leads' => Lead::where('company_id', $companyId)->where('status', 'novo')->count(),
-                'pending_tasks' => Task::where('company_id', $companyId)->where('status', 'pendente')->count(),
-                'late_tasks' => Task::where('company_id', $companyId)->where('status', 'atrasada')->count(),
-                'today_appointments' => Appointment::where('company_id', $companyId)->whereDate('starts_at', today())->count(),
+                'active_clients' => Client::where('company_id', $companyId)->where('status', 'ativo')->count(),
+                'pending_tasks' => Task::where('company_id', $companyId)->whereIn('status', ['pendente', 'em_andamento', 'em andamento'])->count(),
+                'late_tasks' => Task::where('company_id', $companyId)
+                    ->where(function ($query) {
+                        $query->where('status', 'atrasada')
+                            ->orWhere(fn ($q) => $q->whereDate('due_date', '<', today())->whereNotIn('status', ['concluida', 'concluida']));
+                    })
+                    ->count(),
+                'today_appointments' => Appointment::where('company_id', $companyId)
+                    ->where(fn ($q) => $q->whereDate('start_at', today())->orWhereDate('starts_at', today()))
+                    ->count(),
+                'pending_payments' => Payment::where('company_id', $companyId)->where('status', 'pendente')->count(),
+                'late_payments' => Payment::where('company_id', $companyId)
+                    ->where(fn ($q) => $q->where('status', 'atrasado')->orWhere(fn ($late) => $late->whereDate('due_date', '<', today())->where('status', 'pendente')))
+                    ->count(),
                 'monthly_revenue' => (float) $revenue,
                 'monthly_expenses' => (float) $expenses,
                 'estimated_profit' => (float) ($revenue - $expenses),
-                'conversion_rate' => round(($converted / $leadTotal) * 100, 1),
             ],
             'recent_activities' => Activity::where('company_id', $companyId)->latest()->limit(8)->get(),
-            'monthly_revenue_chart' => collect(range(1, 12))->map(fn ($month) => [
-                'month' => str_pad((string) $month, 2, '0', STR_PAD_LEFT),
-                'value' => (float) Payment::where('company_id', $companyId)->whereMonth('paid_at', $month)->sum('amount'),
+            'upcoming_appointments' => Appointment::where('company_id', $companyId)
+                ->where(fn ($q) => $q->where('start_at', '>=', now())->orWhere('starts_at', '>=', now()))
+                ->orderBy('starts_at')
+                ->limit(5)
+                ->get(),
+            'urgent_tasks' => Task::where('company_id', $companyId)
+                ->whereIn('priority', ['alta', 'urgente'])
+                ->whereNotIn('status', ['concluida', 'concluída'])
+                ->orderBy('due_at')
+                ->limit(5)
+                ->get(),
+            'recent_payments' => Payment::where('company_id', $companyId)
+                ->latest()
+                ->limit(5)
+                ->get(),
+            'monthly_revenue_chart' => collect(range(1, 12))->map(fn ($chartMonth) => [
+                'month' => str_pad((string) $chartMonth, 2, '0', STR_PAD_LEFT),
+                'value' => (float) Payment::where('company_id', $companyId)
+                    ->where('status', 'pago')
+                    ->whereMonth('paid_at', $chartMonth)
+                    ->whereYear('paid_at', $year)
+                    ->sum('amount'),
             ]),
-            'leads_by_origin' => Lead::where('company_id', $companyId)->selectRaw('origin as name, count(*) as value')->groupBy('origin')->get(),
+            'clients_by_status' => Client::where('company_id', $companyId)
+                ->selectRaw('status as name, count(*) as value')
+                ->groupBy('status')
+                ->get(),
         ]);
     }
 }

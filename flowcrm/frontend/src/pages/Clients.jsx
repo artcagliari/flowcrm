@@ -6,7 +6,7 @@ export default function Clients() {
   return (
     <ResourcePage
       title="Clientes"
-      subtitle="Organize clientes, contatos, responsaveis e historico."
+      subtitle="Organize os dados, contatos, historico e documentos dos seus clientes."
       api={clientsApi}
       modalTitle="cliente"
       defaults={{ status: 'ativo' }}

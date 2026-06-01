@@ -17,4 +17,5 @@ class ExpenseController extends CrudController
     public function show(Request $request, Expense $expense) { return $this->showRecord($request, $expense); }
     public function update(UpdateExpenseRequest $request, Expense $expense) { return $this->updateRecord($request, $expense, $request->validated()); }
     public function destroy(Request $request, Expense $expense) { return $this->destroyRecord($request, $expense); }
+    public function paid(Request $request, Expense $expense) { return $this->updateRecord($request, $expense, ['status' => 'pago', 'paid_at' => now()->toDateString()]); }
 }

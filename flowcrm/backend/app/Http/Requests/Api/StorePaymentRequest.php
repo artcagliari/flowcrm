@@ -8,6 +8,7 @@ class StorePaymentRequest extends FormRequest
     {
         return [
             'client_id' => ['nullable', 'exists:clients,id'],
+            'user_id' => ['nullable', 'exists:users,id'],
             'description' => ['required', 'string', 'max:190'],
             'amount' => ['required', 'numeric', 'min:0'],
             'category' => ['nullable', 'string', 'max:120'],

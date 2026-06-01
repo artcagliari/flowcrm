@@ -8,6 +8,7 @@ class StoreExpenseRequest extends FormRequest
     {
         return [
             'description' => ['required', 'string', 'max:190'],
+            'user_id' => ['nullable', 'exists:users,id'],
             'amount' => ['required', 'numeric', 'min:0'],
             'category' => ['nullable', 'string', 'max:120'],
             'due_date' => ['nullable', 'date'],

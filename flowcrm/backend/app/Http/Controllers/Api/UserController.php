@@ -13,7 +13,7 @@ class UserController extends Controller
 {
     use RespondsWithJson;
 
-    private array $companyRoles = ['dono', 'admin_company', 'agente'];
+    private array $companyRoles = ['company_admin', 'employee', 'financial', 'viewer'];
 
     public function index(Request $request)
     {
@@ -37,9 +37,10 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:160'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8'],
-            'status' => ['required', Rule::in(['ativo', 'inativo'])],
+            'status' => ['required', Rule::in(['active', 'inactive', 'ativo', 'inativo'])],
             'role' => ['required', Rule::in($this->availableRoles($request))],
         ]);
+        $data['status'] = $data['status'] === 'ativo' ? 'active' : ($data['status'] === 'inativo' ? 'inactive' : $data['status']);
 
         $company = $request->attributes->get('current_company');
         $user = User::create([
@@ -47,11 +48,12 @@ class UserController extends Controller
             'email' => $data['email'],
             'password' => $data['password'],
             'status' => $data['status'],
-            'is_superadmin' => $data['role'] === 'superadmin',
+            'role' => $data['role'],
+            'is_superadmin' => false,
         ]);
 
         $role = $this->roleForCompany($company->id, $data['role']);
-        $company->users()->attach($user->id, ['role_id' => $role->id]);
+        $company->users()->attach($user->id, ['role_id' => $role->id, 'role' => $data['role'], 'is_owner' => $data['role'] === 'company_admin', 'status' => $data['status']]);
 
         return $this->success($this->serializeUser($user, $company->id), 'Usuario criado com sucesso.', 201);
     }
@@ -66,9 +68,12 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:160'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'password' => ['nullable', 'string', 'min:8'],
-            'status' => ['sometimes', Rule::in(['ativo', 'inativo'])],
+            'status' => ['sometimes', Rule::in(['active', 'inactive', 'ativo', 'inativo'])],
             'role' => ['sometimes', Rule::in($this->availableRoles($request))],
         ]);
+        if (isset($data['status'])) {
+            $data['status'] = $data['status'] === 'ativo' ? 'active' : ($data['status'] === 'inativo' ? 'inactive' : $data['status']);
+        }
 
         $user->fill([
             'name' => $data['name'],
@@ -85,10 +90,11 @@ class UserController extends Controller
             }
 
             if (isset($data['role'])) {
-                $user->is_superadmin = $data['role'] === 'superadmin';
+                $user->role = $data['role'];
+                $user->is_superadmin = false;
                 $role = $this->roleForCompany($request->attributes->get('current_company')->id, $data['role']);
-                $request->attributes->get('current_company')->users()->syncWithoutDetaching([$user->id => ['role_id' => $role->id]]);
-                $request->attributes->get('current_company')->users()->updateExistingPivot($user->id, ['role_id' => $role->id]);
+                $request->attributes->get('current_company')->users()->syncWithoutDetaching([$user->id => ['role_id' => $role->id, 'role' => $data['role']]]);
+                $request->attributes->get('current_company')->users()->updateExistingPivot($user->id, ['role_id' => $role->id, 'role' => $data['role']]);
             }
         }
 
@@ -137,16 +143,16 @@ class UserController extends Controller
 
     private function availableRoles(Request $request): array
     {
-        return $request->user()->is_superadmin ? [...$this->companyRoles, 'superadmin'] : $this->companyRoles;
+        return $request->user()->isSuperAdmin() ? [...$this->companyRoles, 'super_admin'] : $this->companyRoles;
     }
 
     private function canManageUsers(Request $request): bool
     {
-        if ($request->user()->is_superadmin) {
+        if ($request->user()->isSuperAdmin()) {
             return true;
         }
 
-        return in_array($this->currentRole($request), ['dono', 'admin_company'], true);
+        return in_array($this->currentRole($request), ['company_admin'], true);
     }
 
     private function currentRole(Request $request): ?string
@@ -154,7 +160,8 @@ class UserController extends Controller
         $company = $request->attributes->get('current_company');
         $roleId = $request->user()->companies()->where('companies.id', $company->id)->first()?->pivot?->role_id;
 
-        return $roleId ? Role::find($roleId)?->name : null;
+        $companyUser = $request->user()->companies()->where('companies.id', $company->id)->first();
+        return $companyUser?->pivot?->role ?: ($roleId ? Role::find($roleId)?->name : null);
     }
 
     private function roleForCompany(int $companyId, string $name): Role
@@ -170,7 +177,8 @@ class UserController extends Controller
     private function serializeUser(User $user, int $companyId): array
     {
         $roleId = $user->companies()->where('companies.id', $companyId)->first()?->pivot?->role_id;
-        $role = $user->is_superadmin ? 'superadmin' : ($roleId ? Role::find($roleId)?->name : null);
+        $companyUser = $user->companies()->where('companies.id', $companyId)->first();
+        $role = $user->isSuperAdmin() ? 'super_admin' : ($companyUser?->pivot?->role ?: ($roleId ? Role::find($roleId)?->name : null));
 
         return [
             ...$user->only(['id', 'name', 'email', 'status']),

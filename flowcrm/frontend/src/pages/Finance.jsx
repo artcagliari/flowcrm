@@ -3,16 +3,18 @@ import paymentsApi from '../api/payments';
 import Card from '../components/ui/Card';
 import PageHeader from '../components/shared/PageHeader';
 import { financialStatusOptions, paymentMethodOptions } from '../utils/constants';
+import { formatCurrency } from '../utils/formatCurrency';
+import { formatDate } from '../utils/formatDate';
 import ResourcePage, { statusColumn } from './ResourcePage';
 
 export default function Finance() {
   return (
     <>
-      <PageHeader title="Financeiro" subtitle="Receitas, despesas, status e previsoes." />
+      <PageHeader title="Financeiro" subtitle="Acompanhe receitas, despesas, valores pendentes e atrasados." />
       <section className="mb-4 grid gap-4 md:grid-cols-3">
-        <Card><p className="text-slate-400">Receita total</p><strong className="text-3xl">R$ 0,00</strong></Card>
-        <Card><p className="text-slate-400">Despesas</p><strong className="text-3xl">R$ 0,00</strong></Card>
-        <Card><p className="text-slate-400">Lucro estimado</p><strong className="text-3xl">R$ 0,00</strong></Card>
+        <Card><p className="text-sm text-slate-400">Receita do mes</p><strong className="text-2xl">{formatCurrency(0)}</strong></Card>
+        <Card><p className="text-sm text-slate-400">Despesa do mes</p><strong className="text-2xl">{formatCurrency(0)}</strong></Card>
+        <Card><p className="text-sm text-slate-400">Lucro estimado</p><strong className="text-2xl">{formatCurrency(0)}</strong></Card>
       </section>
       <div className="grid gap-4 xl:grid-cols-2">
         <ResourcePage
@@ -29,7 +31,8 @@ export default function Finance() {
           ]}
           columns={[
             { key: 'description', label: 'Descricao' },
-            { key: 'amount', label: 'Valor' },
+            { key: 'amount', label: 'Valor', render: (row) => formatCurrency(row.amount) },
+            { key: 'due_date', label: 'Vencimento', render: (row) => formatDate(row.due_date) },
             statusColumn(),
           ]}
           filters={[
@@ -57,7 +60,8 @@ export default function Finance() {
           ]}
           columns={[
             { key: 'description', label: 'Descricao' },
-            { key: 'amount', label: 'Valor' },
+            { key: 'amount', label: 'Valor', render: (row) => formatCurrency(row.amount) },
+            { key: 'due_date', label: 'Vencimento', render: (row) => formatDate(row.due_date) },
             statusColumn(),
           ]}
           filters={[

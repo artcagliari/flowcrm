@@ -12,11 +12,11 @@ class TaskController extends CrudController
 {
     protected string $model = Task::class;
     protected string $resource = TaskResource::class;
-    protected array $with = ['owner', 'client', 'lead'];
+    protected array $with = ['user', 'owner', 'client'];
 
     public function store(StoreTaskRequest $request) { return $this->createRecord($request, $request->validated()); }
     public function show(Request $request, Task $task) { return $this->showRecord($request, $task); }
     public function update(UpdateTaskRequest $request, Task $task) { return $this->updateRecord($request, $task, $request->validated()); }
     public function destroy(Request $request, Task $task) { return $this->destroyRecord($request, $task); }
-    public function complete(Request $request, Task $task) { return $this->updateRecord($request, $task, ['status' => 'concluída']); }
+    public function complete(Request $request, Task $task) { return $this->updateRecord($request, $task, ['status' => 'concluida', 'completed_at' => now()]); }
 }

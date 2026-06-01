@@ -8,7 +8,7 @@ class Activity extends CompanyModel
 {
     use HasFactory;
 
-    protected $fillable = ['company_id', 'user_id', 'subject_type', 'subject_id', 'description', 'metadata'];
+    protected $fillable = ['company_id', 'user_id', 'client_id', 'subject_type', 'subject_id', 'action', 'description', 'metadata'];
 
     protected $casts = ['metadata' => 'array'];
 }

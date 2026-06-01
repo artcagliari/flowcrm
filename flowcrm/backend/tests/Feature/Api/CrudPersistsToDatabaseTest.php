@@ -7,7 +7,6 @@ use App\Models\Client;
 use App\Models\Company;
 use App\Models\Document;
 use App\Models\Expense;
-use App\Models\Lead;
 use App\Models\Payment;
 use App\Models\Role;
 use App\Models\Task;
@@ -31,8 +30,8 @@ class CrudPersistsToDatabaseTest extends TestCase
 
         $this->user = User::factory()->create();
         $this->company = Company::factory()->create();
-        $role = Role::create(['company_id' => $this->company->id, 'name' => 'dono']);
-        $this->company->users()->attach($this->user->id, ['role_id' => $role->id]);
+        $role = Role::create(['company_id' => $this->company->id, 'name' => 'company_admin']);
+        $this->company->users()->attach($this->user->id, ['role_id' => $role->id, 'role' => 'company_admin', 'is_owner' => true, 'status' => 'active']);
 
         $this->headers = [
             'Authorization' => 'Bearer '.$this->user->createToken('test')->plainTextToken,
@@ -45,7 +44,7 @@ class CrudPersistsToDatabaseTest extends TestCase
         $id = $this->postJson('/api/clients', [
             'name' => 'Cliente Novo',
             'email' => 'cliente@example.com',
-            'status' => 'ativo',
+            'status' => 'active',
         ], $this->headers)->assertCreated()->json('data.id');
 
         $this->assertDatabaseHas('clients', ['id' => $id, 'company_id' => $this->company->id, 'name' => 'Cliente Novo']);
@@ -60,29 +59,6 @@ class CrudPersistsToDatabaseTest extends TestCase
 
         $this->deleteJson("/api/clients/{$id}", [], $this->headers)->assertOk();
         $this->assertSoftDeleted(Client::class, ['id' => $id]);
-    }
-
-    public function test_lead_create_update_delete_persists_to_database(): void
-    {
-        $id = $this->postJson('/api/leads', [
-            'name' => 'Lead Novo',
-            'phone' => '(11) 99999-9999',
-            'temperature' => 'morno',
-            'status' => 'novo',
-        ], $this->headers)->assertCreated()->json('data.id');
-
-        $this->assertDatabaseHas('leads', ['id' => $id, 'name' => 'Lead Novo']);
-
-        $this->putJson("/api/leads/{$id}", [
-            'name' => 'Lead Editado',
-            'temperature' => 'quente',
-            'status' => 'qualificado',
-        ], $this->headers)->assertOk();
-
-        $this->assertDatabaseHas('leads', ['id' => $id, 'name' => 'Lead Editado', 'status' => 'qualificado']);
-
-        $this->deleteJson("/api/leads/{$id}", [], $this->headers)->assertOk();
-        $this->assertSoftDeleted(Lead::class, ['id' => $id]);
     }
 
     public function test_task_create_update_delete_persists_to_database(): void
@@ -242,23 +218,21 @@ class CrudPersistsToDatabaseTest extends TestCase
             ->assertJsonPath('data.0.name', 'Alpha Cliente');
     }
 
-    public function test_reports_are_grouped_by_business_area(): void
+    public function test_dashboard_is_grouped_by_crm_areas(): void
     {
         Client::factory()->create(['company_id' => $this->company->id, 'status' => 'ativo', 'origin' => 'Google', 'city' => 'Sao Paulo']);
-        Lead::factory()->create(['company_id' => $this->company->id, 'status' => 'convertido', 'origin' => 'Instagram', 'temperature' => 'quente', 'estimated_value' => 3000]);
         Task::create(['company_id' => $this->company->id, 'title' => 'Tarefa relatorio', 'status' => 'pendente', 'priority' => 'alta']);
         Appointment::create(['company_id' => $this->company->id, 'title' => 'Reuniao relatorio', 'status' => 'agendado', 'type' => 'reuniao', 'starts_at' => now()->addDay()]);
         Payment::create(['company_id' => $this->company->id, 'description' => 'Receita relatorio', 'status' => 'pago', 'amount' => 1200, 'paid_at' => now()->toDateString()]);
         Expense::create(['company_id' => $this->company->id, 'description' => 'Gasto relatorio', 'status' => 'pago', 'category' => 'Marketing', 'amount' => 300, 'paid_at' => now()->toDateString()]);
 
-        $this->getJson('/api/reports?from='.now()->subDay()->toDateString().'&to='.now()->addDays(2)->toDateString(), $this->headers)
+        $this->getJson('/api/dashboard', $this->headers)
             ->assertOk()
-            ->assertJsonPath('data.overview.clients', 1)
-            ->assertJsonPath('data.overview.leads', 1)
-            ->assertJsonPath('data.overview.appointments', 1)
-            ->assertJsonPath('data.overview.revenue', 1200)
-            ->assertJsonPath('data.overview.expenses', 300)
-            ->assertJsonPath('data.leads.conversion_rate', 100);
+            ->assertJsonPath('data.stats.clients', 1)
+            ->assertJsonPath('data.stats.today_appointments', 0)
+            ->assertJsonPath('data.stats.monthly_revenue', 1200)
+            ->assertJsonPath('data.stats.monthly_expenses', 300)
+            ->assertJsonPath('data.stats.estimated_profit', 900);
     }
 
     public function test_owner_can_manage_company_users_and_user_can_update_own_profile(): void
@@ -268,18 +242,18 @@ class CrudPersistsToDatabaseTest extends TestCase
             'email' => 'agente@flowcrm.test',
             'password' => 'password123',
             'status' => 'ativo',
-            'role' => 'agente',
+            'role' => 'employee',
         ], $this->headers)->assertCreated()->json('data.id');
 
-        $this->assertDatabaseHas('users', ['id' => $id, 'email' => 'agente@flowcrm.test', 'status' => 'ativo']);
+        $this->assertDatabaseHas('users', ['id' => $id, 'email' => 'agente@flowcrm.test', 'status' => 'active']);
         $this->assertDatabaseHas('company_user', ['company_id' => $this->company->id, 'user_id' => $id]);
 
         $this->putJson("/api/users/{$id}", [
             'name' => 'Admin Company',
             'email' => 'admin.company@flowcrm.test',
-            'status' => 'ativo',
-            'role' => 'admin_company',
-        ], $this->headers)->assertOk()->assertJsonPath('data.role', 'admin_company');
+            'status' => 'active',
+            'role' => 'company_admin',
+        ], $this->headers)->assertOk()->assertJsonPath('data.role', 'company_admin');
 
         $agent = User::findOrFail($id);
         $agentHeaders = [

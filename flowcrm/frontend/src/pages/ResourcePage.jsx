@@ -11,7 +11,7 @@ import Table from '../components/ui/Table';
 import PageHeader from '../components/shared/PageHeader';
 import { useApiResource } from '../hooks/useApiResource';
 
-export default function ResourcePage({ title, subtitle, api, fields, columns, defaults = {}, modalTitle, filters = [], sortOptions = [] }) {
+export default function ResourcePage({ title, subtitle, api, fields, columns, defaults = {}, modalTitle, filters = [], sortOptions = [], transformSubmit, prepareEdit }) {
   const [query, setQuery] = useState({
     search: '',
     sort_by: sortOptions[0]?.value || 'created_at',
@@ -24,8 +24,9 @@ export default function ResourcePage({ title, subtitle, api, fields, columns, de
 
   async function submit(e) {
     e.preventDefault();
-    if (editing) await api.update(editing.id, form);
-    else await api.create(form);
+    const payload = transformSubmit ? transformSubmit(form) : form;
+    if (editing) await api.update(editing.id, payload);
+    else await api.create(payload);
     setOpen(false);
     setEditing(null);
     setForm(defaults);
@@ -34,7 +35,7 @@ export default function ResourcePage({ title, subtitle, api, fields, columns, de
 
   function edit(row) {
     setEditing(row);
-    setForm(row);
+    setForm(prepareEdit ? prepareEdit(row) : row);
     setOpen(true);
   }
 

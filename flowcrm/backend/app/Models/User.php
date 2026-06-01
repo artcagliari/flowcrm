@@ -24,7 +24,11 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'avatar',
+        'phone',
+        'role',
         'status',
+        'last_login_at',
         'is_superadmin',
     ];
 
@@ -49,13 +53,19 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_superadmin' => 'boolean',
+            'last_login_at' => 'datetime',
         ];
     }
 
     public function companies(): BelongsToMany
     {
         return $this->belongsToMany(Company::class)
-            ->withPivot('role_id')
+            ->withPivot(['role_id', 'role', 'is_owner', 'status'])
             ->withTimestamps();
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'super_admin' || $this->is_superadmin;
     }
 }

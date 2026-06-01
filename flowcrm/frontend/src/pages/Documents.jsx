@@ -30,7 +30,7 @@ export default function Documents() {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [file, setFile] = useState(null);
-  const [form, setForm] = useState({ category: 'outros', client_id: '', lead_id: '' });
+  const [form, setForm] = useState({ category: 'outros', client_id: '' });
   const [query, setQuery] = useState({ search: '', category: '' });
   const [message, setMessage] = useState('');
 
@@ -51,7 +51,7 @@ export default function Documents() {
     }
     await uploadDocument({ ...form, file });
     setFile(null);
-    setForm({ category: 'outros', client_id: '', lead_id: '' });
+    setForm({ category: 'outros', client_id: '' });
     setMessage('Documento enviado com sucesso.');
     await load();
   }
@@ -65,7 +65,7 @@ export default function Documents() {
 
   return (
     <>
-      <PageHeader title="Documentos" subtitle="Upload, categorias e arquivos vinculados." />
+      <PageHeader title="Documentos" subtitle="Guarde contratos, comprovantes, propostas e arquivos importantes." />
 
       {message && <div className="mb-4 rounded-2xl border border-sky-300/20 bg-sky-400/10 p-3 text-sm text-sky-100">{message}</div>}
 
@@ -77,7 +77,6 @@ export default function Documents() {
               {documentCategories.map((category) => <option key={category.value} value={category.value}>{category.label}</option>)}
             </Select>
             <Input label="ID do cliente vinculado" value={form.client_id} onChange={(event) => setForm({ ...form, client_id: event.target.value })} />
-            <Input label="ID do lead vinculado" value={form.lead_id} onChange={(event) => setForm({ ...form, lead_id: event.target.value })} />
             <Button><Upload size={16} /> Enviar documento</Button>
           </form>
         </Card>

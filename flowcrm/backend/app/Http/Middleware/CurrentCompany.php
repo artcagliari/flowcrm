@@ -22,15 +22,37 @@ class CurrentCompany
             ], 401);
         }
 
-        $company = $user->is_superadmin
-            ? ($companyId ? Company::find($companyId) : $user->companies()->first())
-            : ($companyId ? $user->companies()->whereKey($companyId)->first() : $user->companies()->first());
+        if ($user->isSuperAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Admin Master deve usar o painel administrativo.',
+                'errors' => [],
+            ], 403);
+        }
+
+        $company = $companyId ? $user->companies()->whereKey($companyId)->first() : $user->companies()->first();
 
         if (! $company) {
             return response()->json([
                 'success' => false,
                 'message' => 'Empresa atual inválida ou não informada.',
                 'errors' => ['company_id' => ['Informe uma empresa vinculada ao usuário.']],
+            ], 403);
+        }
+
+        if ($company->status === 'suspended') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Esta empresa esta suspensa. Entre em contato com o administrador da plataforma.',
+                'errors' => [],
+            ], 403);
+        }
+
+        if ($company->status !== 'active') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Esta empresa esta inativa. Entre em contato com o administrador da plataforma.',
+                'errors' => [],
             ], 403);
         }
 

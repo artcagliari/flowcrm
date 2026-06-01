@@ -35,10 +35,13 @@ class DocumentController extends Controller
         $document = Document::create([
             ...$request->safe()->except('file'),
             'company_id' => $request->attributes->get('current_company')->id,
+            'user_id' => $request->user()->id,
             'uploaded_by' => $request->user()->id,
             'name' => $file->getClientOriginalName(),
+            'original_name' => $file->getClientOriginalName(),
             'path' => $path,
             'mime_type' => $file->getMimeType(),
+            'size' => $file->getSize(),
             'size_bytes' => $file->getSize(),
         ]);
 

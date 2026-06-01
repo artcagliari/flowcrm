@@ -9,8 +9,11 @@ class Client extends CompanyModel
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['company_id', 'owner_id', 'name', 'phone', 'whatsapp', 'email', 'document', 'address', 'city', 'profession', 'origin', 'status', 'notes'];
+    protected $fillable = ['company_id', 'user_id', 'owner_id', 'name', 'phone', 'whatsapp', 'email', 'document', 'birth_date', 'profession', 'address', 'city', 'state', 'origin', 'status', 'notes', 'last_contact_at'];
 
+    protected $casts = ['birth_date' => 'date', 'last_contact_at' => 'datetime'];
+
+    public function user() { return $this->belongsTo(User::class); }
     public function owner() { return $this->belongsTo(User::class, 'owner_id'); }
     public function leads() { return $this->hasMany(Lead::class); }
     public function tasks() { return $this->hasMany(Task::class); }

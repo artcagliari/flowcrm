@@ -11,6 +11,7 @@ export function AuthProvider({ children }) {
   const applySession = useCallback((session) => {
     localStorage.setItem('flowcrm_token', session.token);
     if (session.company?.id) localStorage.setItem('flowcrm_company_id', session.company.id);
+    else localStorage.removeItem('flowcrm_company_id');
     setUser(session.user);
     setCompany(session.company);
   }, []);
@@ -22,6 +23,7 @@ export function AuthProvider({ children }) {
         setUser(data.user);
         setCompany(data.company);
         if (data.company?.id) localStorage.setItem('flowcrm_company_id', data.company.id);
+        else localStorage.removeItem('flowcrm_company_id');
       })
       .finally(() => setLoading(false));
   }, []);
@@ -29,11 +31,7 @@ export function AuthProvider({ children }) {
   async function login(payload) {
     const session = await authApi.login(payload);
     applySession(session);
-  }
-
-  async function register(payload) {
-    const session = await authApi.register(payload);
-    applySession(session);
+    return session;
   }
 
   async function logout() {
@@ -48,7 +46,7 @@ export function AuthProvider({ children }) {
     setUser(nextUser);
   }
 
-  const value = useMemo(() => ({ user, company, loading, login, register, logout, refreshUser, authenticated: Boolean(user) }), [user, company, loading]);
+  const value = useMemo(() => ({ user, company, loading, login, logout, refreshUser, authenticated: Boolean(user) }), [user, company, loading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

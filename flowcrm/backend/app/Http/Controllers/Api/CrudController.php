@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
+use App\Models\Activity;
+use App\Models\Client;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
@@ -34,7 +36,7 @@ abstract class CrudController extends Controller
             });
         }
 
-        foreach (['status', 'priority', 'temperature', 'origin', 'type', 'payment_method', 'category', 'owner_id', 'client_id', 'lead_id'] as $filter) {
+        foreach (['status', 'priority', 'origin', 'type', 'payment_method', 'category', 'user_id', 'owner_id', 'client_id'] as $filter) {
             if ($request->filled($filter)) {
                 $query->where($filter, $request->query($filter));
             }
@@ -53,7 +55,18 @@ abstract class CrudController extends Controller
     protected function createRecord(Request $request, array $data)
     {
         $data['company_id'] = $this->companyId($request);
+        $fillable = (new $this->model)->getFillable();
+
+        if (in_array('user_id', $fillable, true) && empty($data['user_id'])) {
+            $data['user_id'] = $request->user()->id;
+        }
+
+        if (in_array('owner_id', $fillable, true) && empty($data['owner_id'])) {
+            $data['owner_id'] = $data['user_id'] ?? $request->user()->id;
+        }
+
         $record = $this->model::create($data);
+        $this->activity($request, 'criado', 'Registro criado.', $record);
 
         return $this->success(new $this->resource($record->load($this->with)), 'Registro criado com sucesso.', 201);
     }
@@ -62,6 +75,7 @@ abstract class CrudController extends Controller
     {
         $this->abortIfDifferentCompany($request, $record);
         $record->update($data);
+        $this->activity($request, 'atualizado', 'Registro atualizado.', $record);
 
         return $this->success(new $this->resource($record->fresh($this->with)));
     }
@@ -77,12 +91,26 @@ abstract class CrudController extends Controller
     {
         $this->abortIfDifferentCompany($request, $record);
         $record->delete();
+        $this->activity($request, 'excluido', 'Registro excluido.', $record);
 
-        return $this->success(null, 'Registro excluído com sucesso.');
+        return $this->success(null, 'Registro excluido com sucesso.');
     }
 
     protected function abortIfDifferentCompany(Request $request, Model $record): void
     {
-        abort_if((int) $record->company_id !== $this->companyId($request), 403, 'Registro não pertence à empresa atual.');
+        abort_if((int) $record->company_id !== $this->companyId($request), 403, 'Registro nao pertence a empresa atual.');
+    }
+
+    protected function activity(Request $request, string $action, string $description, Model $record): void
+    {
+        Activity::create([
+            'company_id' => $this->companyId($request),
+            'user_id' => $request->user()?->id,
+            'client_id' => $record->client_id ?? ($record instanceof Client ? $record->id : null),
+            'subject_type' => $record::class,
+            'subject_id' => $record->getKey(),
+            'action' => $action,
+            'description' => class_basename($record).' '.$description,
+        ]);
     }
 }

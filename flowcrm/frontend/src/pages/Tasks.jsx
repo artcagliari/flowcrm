@@ -1,12 +1,13 @@
 import tasksApi from '../api/tasks';
 import { taskPriorityOptions, taskStatusOptions } from '../utils/constants';
+import { formatDateTime } from '../utils/formatDate';
 import ResourcePage, { statusColumn } from './ResourcePage';
 
 export default function Tasks() {
   return (
     <ResourcePage
       title="Tarefas"
-      subtitle="Gerencie retornos, follow-ups e prazos."
+      subtitle="Gerencie pendencias, prazos e atividades da sua rotina."
       api={tasksApi}
       modalTitle="tarefa"
       defaults={{ status: 'pendente', priority: 'media' }}
@@ -20,7 +21,7 @@ export default function Tasks() {
       columns={[
         { key: 'title', label: 'Tarefa' },
         { key: 'priority', label: 'Prioridade' },
-        { key: 'due_at', label: 'Prazo' },
+        { key: 'due_at', label: 'Prazo', render: (row) => formatDateTime(row.due_at || row.due_date) },
         statusColumn(),
       ]}
       filters={[
