@@ -11,9 +11,12 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\ClientRelationController;
+use App\Http\Controllers\Api\KanbanController;
+use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\NoteController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\TaskController;
@@ -40,6 +43,9 @@ Route::middleware(['auth:sanctum', 'super.admin'])->prefix('admin')->group(funct
 Route::middleware(['auth:sanctum', 'current.company'])->group(function () {
     Route::get('search', SearchController::class);
     Route::get('dashboard', DashboardController::class);
+    Route::get('reports', ReportController::class);
+    Route::get('kanban', [KanbanController::class, 'index']);
+    Route::patch('kanban/leads/{lead}/move', [KanbanController::class, 'move']);
 
     Route::apiResource('clients', ClientController::class);
     Route::get('clients/{client}/activities', [ClientRelationController::class, 'activities']);
@@ -53,6 +59,10 @@ Route::middleware(['auth:sanctum', 'current.company'])->group(function () {
     Route::post('clients/{client}/documents', [ClientRelationController::class, 'storeDocument']);
     Route::get('clients/{client}/notes', [ClientRelationController::class, 'notes']);
     Route::post('clients/{client}/notes', [ClientRelationController::class, 'storeNote']);
+
+    Route::apiResource('leads', LeadController::class);
+    Route::post('leads/{lead}/convert', [LeadController::class, 'convert']);
+    Route::patch('leads/{lead}/lost', [LeadController::class, 'lost']);
 
     Route::apiResource('tasks', TaskController::class);
     Route::patch('tasks/{task}/complete', [TaskController::class, 'complete']);

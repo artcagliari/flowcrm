@@ -62,8 +62,8 @@ class ReportController extends Controller
             'tasks' => [
                 'by_status' => $this->groupCount(Task::where('company_id', $companyId), 'status', 'created_at', $from, $to),
                 'by_priority' => $this->groupCount(Task::where('company_id', $companyId), 'priority', 'created_at', $from, $to),
-                'completed_by_month' => $this->monthlyCount(Task::where('company_id', $companyId)->whereIn('status', ['concluida', 'concluída']), 'updated_at', $from, $to),
-                'overdue' => Task::where('company_id', $companyId)->whereNotIn('status', ['concluida', 'concluída'])->where('due_at', '<', now())->count(),
+                'completed_by_month' => $this->monthlyCount(Task::where('company_id', $companyId)->whereIn('status', ['concluida']), 'updated_at', $from, $to),
+                'overdue' => Task::where('company_id', $companyId)->whereNotIn('status', ['concluida'])->where('due_at', '<', now())->count(),
             ],
         ]);
     }

@@ -8,8 +8,10 @@ use App\Models\Activity;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\Expense;
+use App\Models\Lead;
 use App\Models\Payment;
 use App\Models\Task;
+use App\Services\CrmOverdueMarker;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -19,6 +21,7 @@ class DashboardController extends Controller
     public function __invoke(Request $request)
     {
         $companyId = $request->attributes->get('current_company')->id;
+        app(CrmOverdueMarker::class)->markForCompany($companyId);
         $month = now()->month;
         $year = now()->year;
 
@@ -38,11 +41,13 @@ class DashboardController extends Controller
             'stats' => [
                 'clients' => Client::where('company_id', $companyId)->count(),
                 'active_clients' => Client::where('company_id', $companyId)->where('status', 'ativo')->count(),
-                'pending_tasks' => Task::where('company_id', $companyId)->whereIn('status', ['pendente', 'em_andamento', 'em andamento'])->count(),
+                'leads' => Lead::where('company_id', $companyId)->count(),
+                'open_leads' => Lead::where('company_id', $companyId)->whereNotIn('status', ['convertido', 'perdido'])->count(),
+                'pending_tasks' => Task::where('company_id', $companyId)->whereIn('status', ['pendente', 'em andamento'])->count(),
                 'late_tasks' => Task::where('company_id', $companyId)
                     ->where(function ($query) {
                         $query->where('status', 'atrasada')
-                            ->orWhere(fn ($q) => $q->whereDate('due_date', '<', today())->whereNotIn('status', ['concluida', 'concluida']));
+                            ->orWhere(fn ($q) => $q->whereDate('due_date', '<', today())->whereNotIn('status', ['concluida']));
                     })
                     ->count(),
                 'today_appointments' => Appointment::where('company_id', $companyId)
@@ -64,7 +69,7 @@ class DashboardController extends Controller
                 ->get(),
             'urgent_tasks' => Task::where('company_id', $companyId)
                 ->whereIn('priority', ['alta', 'urgente'])
-                ->whereNotIn('status', ['concluida', 'concluída'])
+                ->whereNotIn('status', ['concluida'])
                 ->orderBy('due_at')
                 ->limit(5)
                 ->get(),
@@ -81,6 +86,10 @@ class DashboardController extends Controller
                     ->sum('amount'),
             ]),
             'clients_by_status' => Client::where('company_id', $companyId)
+                ->selectRaw('status as name, count(*) as value')
+                ->groupBy('status')
+                ->get(),
+            'leads_by_status' => Lead::where('company_id', $companyId)
                 ->selectRaw('status as name, count(*) as value')
                 ->groupBy('status')
                 ->get(),

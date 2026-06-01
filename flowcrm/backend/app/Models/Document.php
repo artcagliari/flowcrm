@@ -14,5 +14,6 @@ class Document extends CompanyModel
     protected $casts = ['size' => 'integer', 'size_bytes' => 'integer'];
 
     public function client() { return $this->belongsTo(Client::class); }
+    public function lead() { return $this->belongsTo(Lead::class); }
     public function user() { return $this->belongsTo(User::class); }
 }

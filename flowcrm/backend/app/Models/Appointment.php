@@ -16,4 +16,5 @@ class Appointment extends CompanyModel
     public function user() { return $this->belongsTo(User::class); }
     public function owner() { return $this->belongsTo(User::class, 'owner_id'); }
     public function client() { return $this->belongsTo(Client::class); }
+    public function lead() { return $this->belongsTo(Lead::class); }
 }

@@ -1,14 +1,17 @@
 import { NavLink } from 'react-router-dom';
-import { Bell, CalendarDays, FolderOpen, LayoutDashboard, ListChecks, Settings, ShieldCheck, Users, Wallet } from 'lucide-react';
+import { BarChart3, Bell, CalendarDays, FolderOpen, KanbanSquare, LayoutDashboard, ListChecks, Settings, ShieldCheck, Target, Users, Wallet } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 
 const items = [
   ['/dashboard', 'Dashboard', LayoutDashboard],
   ['/clients', 'Clientes', Users],
+  ['/leads', 'Leads', Target],
+  ['/kanban', 'Funil', KanbanSquare],
   ['/tasks', 'Tarefas', ListChecks],
   ['/appointments', 'Agenda', CalendarDays],
   ['/finance', 'Financeiro', Wallet],
   ['/documents', 'Documentos', FolderOpen],
+  ['/reports', 'Relatorios', BarChart3],
   ['/notifications', 'Notificacoes', Bell],
   ['/users', 'Usuarios', ShieldCheck],
   ['/settings', 'Configuracoes', Settings],

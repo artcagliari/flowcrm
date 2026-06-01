@@ -3,16 +3,18 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\RespondsWithJson;
+use App\Http\Controllers\Api\Concerns\AuthorizesCompanyAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Activity;
 use App\Models\Client;
+use App\Models\Lead;
 use App\Models\Notification;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
 abstract class CrudController extends Controller
 {
-    use RespondsWithJson;
+    use RespondsWithJson, AuthorizesCompanyAccess;
 
     protected string $model;
     protected string $resource;
@@ -55,6 +57,8 @@ abstract class CrudController extends Controller
 
     protected function createRecord(Request $request, array $data)
     {
+        $this->abortUnlessCanManageModule($request, $this->moduleForRecord(new $this->model));
+
         $data['company_id'] = $this->companyId($request);
         $fillable = (new $this->model)->getFillable();
 
@@ -76,6 +80,7 @@ abstract class CrudController extends Controller
     protected function updateRecord(Request $request, Model $record, array $data)
     {
         $this->abortIfDifferentCompany($request, $record);
+        $this->abortUnlessCanManageModule($request, $this->moduleForRecord($record));
         $record->update($data);
         $this->activity($request, 'atualizado', 'Registro atualizado.', $record);
         $this->notification($request, $record, 'updated');
@@ -93,6 +98,7 @@ abstract class CrudController extends Controller
     protected function destroyRecord(Request $request, Model $record)
     {
         $this->abortIfDifferentCompany($request, $record);
+        $this->abortUnlessCanManageModule($request, $this->moduleForRecord($record));
         $record->delete();
         $this->activity($request, 'excluido', 'Registro excluido.', $record);
 
@@ -107,10 +113,13 @@ abstract class CrudController extends Controller
     protected function activity(Request $request, string $action, string $description, Model $record): void
     {
         $clientName = $record instanceof Client ? $record->name : $record->client?->name ?? null;
+        $leadName = $record instanceof Lead ? $record->name : $record->lead?->name ?? null;
         $title = $record->title ?? $record->description ?? $record->name ?? class_basename($record);
         $specificAction = match (class_basename($record).':'.$action) {
             'Client:criado' => 'client_created',
             'Client:atualizado' => 'client_updated',
+            'Lead:criado' => 'lead_created',
+            'Lead:atualizado' => 'lead_updated',
             'Task:criado' => 'task_created',
             'Task:atualizado' => $record->status === 'concluida' ? 'task_completed' : 'task_updated',
             'Appointment:criado' => 'appointment_created',
@@ -121,12 +130,13 @@ abstract class CrudController extends Controller
         };
         $specificDescription = $clientName
             ? "{$title} - {$description} Cliente: {$clientName}."
-            : class_basename($record).' '.$description;
+            : ($leadName ? "{$title} - {$description} Lead: {$leadName}." : class_basename($record).' '.$description);
 
         Activity::create([
             'company_id' => $this->companyId($request),
             'user_id' => $request->user()?->id,
             'client_id' => $record->client_id ?? ($record instanceof Client ? $record->id : null),
+            'lead_id' => $record->lead_id ?? ($record instanceof Lead ? $record->id : null),
             'subject_type' => $record::class,
             'subject_id' => $record->getKey(),
             'action' => $specificAction,

@@ -6,12 +6,20 @@ use App\Http\Requests\Api\StorePaymentRequest;
 use App\Http\Requests\Api\UpdatePaymentRequest;
 use App\Http\Resources\PaymentResource;
 use App\Models\Payment;
+use App\Services\CrmOverdueMarker;
 use Illuminate\Http\Request;
 
 class PaymentController extends CrudController
 {
     protected string $model = Payment::class;
     protected string $resource = PaymentResource::class;
+
+    public function index(Request $request)
+    {
+        app(CrmOverdueMarker::class)->markForCompany($this->companyId($request));
+
+        return parent::index($request);
+    }
 
     public function store(StorePaymentRequest $request) { return $this->createRecord($request, $request->validated()); }
     public function show(Request $request, Payment $payment) { return $this->showRecord($request, $payment); }

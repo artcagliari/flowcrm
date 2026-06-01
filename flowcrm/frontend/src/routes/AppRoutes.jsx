@@ -6,10 +6,14 @@ import Login from '../pages/auth/Login';
 import Dashboard from '../pages/Dashboard';
 import Clients from '../pages/Clients';
 import ClientDetails from '../pages/ClientDetails';
+import Leads from '../pages/Leads';
+import LeadDetails from '../pages/LeadDetails';
+import Kanban from '../pages/Kanban';
 import Tasks from '../pages/Tasks';
 import Appointments from '../pages/Appointments';
 import Finance from '../pages/Finance';
 import Documents from '../pages/Documents';
+import Reports from '../pages/Reports';
 import Settings from '../pages/Settings';
 import Notifications from '../pages/Notifications';
 import Users from '../pages/Users';
@@ -68,10 +72,14 @@ export default function AppRoutes() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/clients" element={<Clients />} />
             <Route path="/clients/:id" element={<ClientDetails />} />
+            <Route path="/leads" element={<Leads />} />
+            <Route path="/leads/:id" element={<LeadDetails />} />
+            <Route path="/kanban" element={<Kanban />} />
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/appointments" element={<Appointments />} />
             <Route path="/finance" element={<Finance />} />
             <Route path="/documents" element={<Documents />} />
+            <Route path="/reports" element={<Reports />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/users" element={<Users />} />

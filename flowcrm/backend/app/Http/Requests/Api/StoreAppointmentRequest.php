@@ -37,6 +37,7 @@ class StoreAppointmentRequest extends FormRequest
             'user_id' => ['nullable', 'exists:users,id'],
             'owner_id' => ['nullable', 'exists:users,id'],
             'client_id' => ['nullable', 'exists:clients,id'],
+            'lead_id' => ['nullable', 'exists:leads,id'],
             'notes' => ['nullable', 'string'],
         ];
     }

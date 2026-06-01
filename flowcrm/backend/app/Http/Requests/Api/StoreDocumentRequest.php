@@ -11,6 +11,7 @@ class StoreDocumentRequest extends FormRequest
             'category' => ['nullable', 'string', 'max:60'],
             'description' => ['nullable', 'string', 'max:1000'],
             'client_id' => ['nullable', 'exists:clients,id'],
+            'lead_id' => ['nullable', 'exists:leads,id'],
         ];
     }
 }

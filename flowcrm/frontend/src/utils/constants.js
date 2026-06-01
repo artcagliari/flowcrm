@@ -2,17 +2,22 @@ export const STATUS_BADGE = {
   ativo: 'success',
   pago: 'success',
   concluida: 'success',
-  'concluída': 'success',
+  concluido: 'success',
+  convertido: 'success',
   quente: 'success',
+  agendado: 'info',
+  confirmado: 'info',
   pendente: 'warning',
   morno: 'warning',
   atrasada: 'danger',
   atrasado: 'danger',
   frio: 'danger',
   perdido: 'danger',
+  cancelado: 'danger',
+  nao_compareceu: 'danger',
 };
 
-export const leadStages = ['Novo lead', 'Primeiro contato', 'Qualificado', 'Proposta enviada', 'Negociação', 'Fechado', 'Perdido'];
+export const leadStages = ['Novo lead', 'Primeiro contato', 'Qualificado', 'Proposta enviada', 'Negociacao', 'Fechado', 'Perdido'];
 
 export const clientStatusOptions = [
   { value: 'ativo', label: 'Ativo' },
@@ -27,8 +32,8 @@ export const leadStatusOptions = [
   { value: 'novo', label: 'Novo' },
   { value: 'contatado', label: 'Contatado' },
   { value: 'qualificado', label: 'Qualificado' },
-  { value: 'proposta enviada', label: 'Proposta enviada' },
-  { value: 'negociação', label: 'Negociação' },
+  { value: 'proposta_enviada', label: 'Proposta enviada' },
+  { value: 'negociacao', label: 'Negociacao' },
   { value: 'convertido', label: 'Convertido' },
   { value: 'perdido', label: 'Perdido' },
 ];
@@ -42,7 +47,7 @@ export const leadTemperatureOptions = [
 export const taskStatusOptions = [
   { value: 'pendente', label: 'Pendente' },
   { value: 'em andamento', label: 'Em andamento' },
-  { value: 'concluída', label: 'Concluída' },
+  { value: 'concluida', label: 'Concluida' },
   { value: 'atrasada', label: 'Atrasada' },
 ];
 
@@ -56,9 +61,9 @@ export const taskPriorityOptions = [
 export const appointmentStatusOptions = [
   { value: 'agendado', label: 'Agendado' },
   { value: 'confirmado', label: 'Confirmado' },
-  { value: 'concluído', label: 'Concluído' },
+  { value: 'concluido', label: 'Concluido' },
   { value: 'cancelado', label: 'Cancelado' },
-  { value: 'não compareceu', label: 'Não compareceu' },
+  { value: 'nao_compareceu', label: 'Nao compareceu' },
 ];
 
 export const appointmentTypeOptions = [
@@ -80,15 +85,15 @@ export const financialStatusOptions = [
 export const originOptions = [
   { value: 'Google', label: 'Google' },
   { value: 'Instagram', label: 'Instagram' },
-  { value: 'Indicação', label: 'Indicação' },
+  { value: 'Indicacao', label: 'Indicacao' },
   { value: 'Landing Page', label: 'Landing Page' },
   { value: 'Evento', label: 'Evento' },
 ];
 
 export const paymentMethodOptions = [
   { value: 'Pix', label: 'Pix' },
-  { value: 'cartão', label: 'Cartão' },
+  { value: 'cartao', label: 'Cartao' },
   { value: 'boleto', label: 'Boleto' },
   { value: 'dinheiro', label: 'Dinheiro' },
-  { value: 'transferência', label: 'Transferência' },
+  { value: 'transferencia', label: 'Transferencia' },
 ];

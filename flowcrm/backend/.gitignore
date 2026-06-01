@@ -3,6 +3,9 @@
 .env
 .env.backup
 .env.production
+.mysql-data
+.mysql-start.err
+.mysql-start.out
 .phpactor.json
 .phpunit.result.cache
 /.fleet

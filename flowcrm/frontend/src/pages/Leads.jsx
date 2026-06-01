@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import leadsApi from '../api/leads';
 import { leadStatusOptions, leadTemperatureOptions, originOptions } from '../utils/constants';
 import ResourcePage, { statusColumn } from './ResourcePage';
@@ -21,7 +22,7 @@ export default function Leads() {
         { name: 'estimated_value', label: 'Valor estimado', type: 'number' },
       ]}
       columns={[
-        { key: 'name', label: 'Lead' },
+        { key: 'name', label: 'Lead', render: (row) => <Link className="text-sky-300 hover:text-sky-200" to={`/leads/${row.id}`}>{row.name}</Link> },
         { key: 'phone', label: 'Telefone' },
         { key: 'origin', label: 'Origem' },
         { key: 'temperature', label: 'Temperatura' },

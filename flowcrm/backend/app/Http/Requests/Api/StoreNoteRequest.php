@@ -19,6 +19,7 @@ class StoreNoteRequest extends FormRequest
             'type' => ['nullable', 'string', 'max:40'],
             'is_private' => ['nullable', 'boolean'],
             'client_id' => ['nullable', 'exists:clients,id'],
+            'lead_id' => ['nullable', 'exists:leads,id'],
         ];
     }
 }

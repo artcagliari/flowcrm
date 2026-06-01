@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\Concerns\RespondsWithJson;
+use App\Http\Controllers\Api\Concerns\AuthorizesCompanyAccess;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\StoreDocumentRequest;
 use App\Models\Document;
@@ -12,7 +13,7 @@ use Illuminate\Support\Facades\Storage;
 
 class DocumentController extends Controller
 {
-    use RespondsWithJson;
+    use RespondsWithJson, AuthorizesCompanyAccess;
 
     public function index(Request $request)
     {
@@ -31,6 +32,8 @@ class DocumentController extends Controller
 
     public function store(StoreDocumentRequest $request)
     {
+        $this->abortUnlessCanManageModule($request, 'documents');
+
         $file = $request->file('file');
         $path = $file->store('documents');
         $document = Document::create([
@@ -68,6 +71,7 @@ class DocumentController extends Controller
     public function destroy(Request $request, Document $document)
     {
         abort_if($document->company_id !== $request->attributes->get('current_company')->id, 403);
+        $this->abortUnlessCanManageModule($request, 'documents');
         $document->delete();
         return $this->success(null, 'Documento excluido com sucesso.');
     }

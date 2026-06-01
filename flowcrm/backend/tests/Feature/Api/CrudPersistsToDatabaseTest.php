@@ -7,6 +7,8 @@ use App\Models\Client;
 use App\Models\Company;
 use App\Models\Document;
 use App\Models\Expense;
+use App\Models\Lead;
+use App\Models\LeadStage;
 use App\Models\Payment;
 use App\Models\Role;
 use App\Models\Task;
@@ -216,6 +218,93 @@ class CrudPersistsToDatabaseTest extends TestCase
         $this->getJson('/api/clients?sort_by=name&sort_dir=asc', $this->headers)
             ->assertOk()
             ->assertJsonPath('data.0.name', 'Alpha Cliente');
+    }
+
+    public function test_lead_detail_and_conversion_connect_related_records_to_client(): void
+    {
+        $stage = LeadStage::create(['company_id' => $this->company->id, 'name' => 'Qualificado', 'position' => 1]);
+        $lead = Lead::create([
+            'company_id' => $this->company->id,
+            'owner_id' => $this->user->id,
+            'lead_stage_id' => $stage->id,
+            'name' => 'Lead Integrado',
+            'email' => 'lead.integrado@example.com',
+            'phone' => '11999990000',
+            'status' => 'qualificado',
+            'temperature' => 'quente',
+            'estimated_value' => 1500,
+        ]);
+        $task = Task::create(['company_id' => $this->company->id, 'lead_id' => $lead->id, 'title' => 'Follow-up lead', 'status' => 'pendente']);
+
+        $this->getJson("/api/leads/{$lead->id}", $this->headers)
+            ->assertOk()
+            ->assertJsonPath('data.lead.id', $lead->id)
+            ->assertJsonPath('data.tasks.0.id', $task->id);
+
+        $clientId = $this->postJson("/api/leads/{$lead->id}/convert", [], $this->headers)
+            ->assertOk()
+            ->assertJsonPath('data.lead.status', 'convertido')
+            ->json('data.client.id');
+
+        $this->assertDatabaseHas('clients', ['id' => $clientId, 'company_id' => $this->company->id, 'email' => 'lead.integrado@example.com']);
+        $this->assertDatabaseHas('tasks', ['id' => $task->id, 'lead_id' => $lead->id, 'client_id' => $clientId]);
+        $this->assertDatabaseHas('activities', ['lead_id' => $lead->id, 'action' => 'lead_converted']);
+    }
+
+    public function test_roles_limit_write_access_by_module(): void
+    {
+        $viewer = User::factory()->create();
+        $financial = User::factory()->create();
+        $this->company->users()->attach($viewer->id, ['role' => 'viewer', 'is_owner' => false, 'status' => 'active']);
+        $this->company->users()->attach($financial->id, ['role' => 'financial', 'is_owner' => false, 'status' => 'active']);
+
+        $viewerHeaders = [
+            'Authorization' => 'Bearer '.$viewer->createToken('test')->plainTextToken,
+            'X-Company-ID' => (string) $this->company->id,
+        ];
+        $financialHeaders = [
+            'Authorization' => 'Bearer '.$financial->createToken('test')->plainTextToken,
+            'X-Company-ID' => (string) $this->company->id,
+        ];
+
+        $this->withHeaders($financialHeaders)->postJson('/api/payments', [
+            'description' => 'Receita financeiro',
+            'amount' => 100,
+            'status' => 'pendente',
+        ])->assertCreated();
+
+        $this->withHeaders($viewerHeaders)->postJson('/api/clients', ['name' => 'Bloqueado'])->assertForbidden();
+        $this->withHeaders($financialHeaders)->postJson('/api/clients', ['name' => 'Bloqueado financeiro'])->assertForbidden();
+    }
+
+    public function test_overdue_records_are_marked_when_operational_lists_are_loaded(): void
+    {
+        $payment = Payment::create([
+            'company_id' => $this->company->id,
+            'description' => 'Receita vencida',
+            'amount' => 100,
+            'status' => 'pendente',
+            'due_date' => now()->subDay()->toDateString(),
+        ]);
+        $expense = Expense::create([
+            'company_id' => $this->company->id,
+            'description' => 'Despesa vencida',
+            'amount' => 50,
+            'status' => 'pendente',
+            'due_date' => now()->subDay()->toDateString(),
+        ]);
+        $task = Task::create([
+            'company_id' => $this->company->id,
+            'title' => 'Tarefa vencida',
+            'status' => 'pendente',
+            'due_at' => now()->subHour(),
+        ]);
+
+        $this->getJson('/api/dashboard', $this->headers)->assertOk();
+
+        $this->assertDatabaseHas('payments', ['id' => $payment->id, 'status' => 'atrasado']);
+        $this->assertDatabaseHas('expenses', ['id' => $expense->id, 'status' => 'atrasado']);
+        $this->assertDatabaseHas('tasks', ['id' => $task->id, 'status' => 'atrasada']);
     }
 
     public function test_dashboard_is_grouped_by_crm_areas(): void
