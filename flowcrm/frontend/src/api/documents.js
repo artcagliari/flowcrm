@@ -15,7 +15,7 @@ export const uploadDocument = (payload) => {
 
 export const deleteDocument = (id) => api.delete(`/documents/${id}`).then((r) => r.data.data);
 
-export const documentDownloadUrl = (id) => `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/documents/${id}/download`;
+export const documentDownloadUrl = (id) => `${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api'}/documents/${id}/download`;
 
 export const downloadDocument = async (document) => {
   const response = await api.get(`/documents/${document.id}/download`, { responseType: 'blob' });

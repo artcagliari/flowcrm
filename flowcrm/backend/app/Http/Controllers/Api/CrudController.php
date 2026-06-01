@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
 use App\Models\Activity;
 use App\Models\Client;
+use App\Models\Notification;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
@@ -67,6 +68,7 @@ abstract class CrudController extends Controller
 
         $record = $this->model::create($data);
         $this->activity($request, 'criado', 'Registro criado.', $record);
+        $this->notification($request, $record, 'created');
 
         return $this->success(new $this->resource($record->load($this->with)), 'Registro criado com sucesso.', 201);
     }
@@ -76,6 +78,7 @@ abstract class CrudController extends Controller
         $this->abortIfDifferentCompany($request, $record);
         $record->update($data);
         $this->activity($request, 'atualizado', 'Registro atualizado.', $record);
+        $this->notification($request, $record, 'updated');
 
         return $this->success(new $this->resource($record->fresh($this->with)));
     }
@@ -103,14 +106,52 @@ abstract class CrudController extends Controller
 
     protected function activity(Request $request, string $action, string $description, Model $record): void
     {
+        $clientName = $record instanceof Client ? $record->name : $record->client?->name ?? null;
+        $title = $record->title ?? $record->description ?? $record->name ?? class_basename($record);
+        $specificAction = match (class_basename($record).':'.$action) {
+            'Client:criado' => 'client_created',
+            'Client:atualizado' => 'client_updated',
+            'Task:criado' => 'task_created',
+            'Task:atualizado' => $record->status === 'concluida' ? 'task_completed' : 'task_updated',
+            'Appointment:criado' => 'appointment_created',
+            'Appointment:atualizado' => $record->status === 'concluido' ? 'appointment_completed' : 'appointment_updated',
+            'Payment:criado' => 'payment_created',
+            'Payment:atualizado' => $record->status === 'pago' ? 'payment_paid' : 'payment_updated',
+            default => strtolower(class_basename($record)).'_'.$action,
+        };
+        $specificDescription = $clientName
+            ? "{$title} - {$description} Cliente: {$clientName}."
+            : class_basename($record).' '.$description;
+
         Activity::create([
             'company_id' => $this->companyId($request),
             'user_id' => $request->user()?->id,
             'client_id' => $record->client_id ?? ($record instanceof Client ? $record->id : null),
             'subject_type' => $record::class,
             'subject_id' => $record->getKey(),
-            'action' => $action,
-            'description' => class_basename($record).' '.$description,
+            'action' => $specificAction,
+            'description' => $specificDescription,
+        ]);
+    }
+
+    protected function notification(Request $request, Model $record, string $event): void
+    {
+        $map = [
+            'Client:created' => ['Cliente criado', 'Um cliente foi cadastrado.', 'success', '/clients/'.($record->id ?? '')],
+            'Task:updated' => $record->status === 'concluida' ? ['Tarefa concluida', 'Uma tarefa foi concluida.', 'success', '/tasks'] : null,
+            'Payment:updated' => $record->status === 'pago' ? ['Pagamento recebido', 'Um pagamento foi marcado como pago.', 'success', '/finance'] : null,
+        ];
+        $payload = $map[class_basename($record).':'.$event] ?? null;
+        if (! $payload) return;
+
+        Notification::create([
+            'company_id' => $this->companyId($request),
+            'user_id' => $request->user()?->id,
+            'title' => $payload[0],
+            'message' => $payload[1],
+            'body' => $payload[1],
+            'type' => $payload[2],
+            'action_url' => $payload[3],
         ]);
     }
 }

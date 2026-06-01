@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\StoreDocumentRequest;
 use App\Models\Document;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -15,7 +16,7 @@ class DocumentController extends Controller
 
     public function index(Request $request)
     {
-        $query = Document::where('company_id', $request->attributes->get('current_company')->id);
+        $query = Document::where('company_id', $request->attributes->get('current_company')->id)->with('client:id,name');
 
         if ($request->filled('search')) {
             $query->where('name', 'like', '%'.$request->query('search').'%');
@@ -43,6 +44,16 @@ class DocumentController extends Controller
             'mime_type' => $file->getMimeType(),
             'size' => $file->getSize(),
             'size_bytes' => $file->getSize(),
+        ]);
+
+        Notification::create([
+            'company_id' => $request->attributes->get('current_company')->id,
+            'user_id' => $request->user()->id,
+            'title' => 'Documento enviado',
+            'message' => 'O documento '.$document->name.' foi enviado com sucesso.',
+            'body' => 'O documento '.$document->name.' foi enviado com sucesso.',
+            'type' => 'success',
+            'action_url' => '/documents',
         ]);
 
         return $this->success($document, 'Documento enviado com sucesso.', 201);

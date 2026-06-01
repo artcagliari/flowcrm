@@ -14,16 +14,37 @@ class SettingController extends Controller
 
     public function show(Request $request)
     {
-        return $this->success(Setting::where('company_id', $request->attributes->get('current_company')->id)->pluck('setting_value', 'setting_key'));
+        return $this->success([
+            'settings' => Setting::where('company_id', $request->attributes->get('current_company')->id)->pluck('setting_value', 'setting_key'),
+            'company' => $request->attributes->get('current_company'),
+        ]);
     }
 
     public function update(UpdateSettingsRequest $request)
     {
         $companyId = $request->attributes->get('current_company')->id;
         foreach ($request->validated('settings') as $key => $value) {
-            Setting::updateOrCreate(['company_id' => $companyId, 'setting_key' => $key], ['setting_value' => $value]);
+            Setting::updateOrCreate(['company_id' => $companyId, 'setting_key' => $key], ['key' => $key, 'value' => $value, 'setting_value' => $value]);
         }
 
-        return $this->success(Setting::where('company_id', $companyId)->pluck('setting_value', 'setting_key'), 'Configurações salvas.');
+        return $this->success(Setting::where('company_id', $companyId)->pluck('setting_value', 'setting_key'), 'Configuracoes salvas.');
+    }
+
+    public function theme(Request $request)
+    {
+        $data = $request->validate([
+            'primary_color' => ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+        ], [
+            'primary_color.regex' => 'Informe uma cor hexadecimal valida, como #4F8CFF.',
+        ]);
+
+        $company = $request->attributes->get('current_company');
+        $company->update(['primary_color' => $data['primary_color']]);
+        Setting::updateOrCreate(
+            ['company_id' => $company->id, 'setting_key' => 'primary_color'],
+            ['key' => 'primary_color', 'value' => $data['primary_color'], 'setting_value' => $data['primary_color'], 'type' => 'string']
+        );
+
+        return $this->success(['primary_color' => $data['primary_color'], 'company' => $company->fresh()], 'Tema atualizado com sucesso.');
     }
 }

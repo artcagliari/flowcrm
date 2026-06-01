@@ -8,6 +8,7 @@ import EmptyState from '../components/ui/EmptyState';
 import FileUpload from '../components/ui/FileUpload';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
+import { handleApiError } from '../utils/handleApiError';
 
 const documentCategories = [
   { value: 'contrato', label: 'Contrato' },
@@ -49,11 +50,15 @@ export default function Documents() {
       setMessage('Selecione um arquivo para enviar.');
       return;
     }
-    await uploadDocument({ ...form, file });
-    setFile(null);
-    setForm({ category: 'outros', client_id: '' });
-    setMessage('Documento enviado com sucesso.');
-    await load();
+    try {
+      await uploadDocument({ ...form, file });
+      setFile(null);
+      setForm({ category: 'outros', client_id: '' });
+      setMessage('Documento enviado. Operacao concluida.');
+      await load();
+    } catch (error) {
+      setMessage(handleApiError(error, 'Nao foi possivel enviar o arquivo. Tente novamente.').message);
+    }
   }
 
   async function remove(document) {
@@ -73,6 +78,7 @@ export default function Documents() {
         <Card>
           <form onSubmit={submit} className="grid gap-3">
             <FileUpload file={file} onChange={setFile} />
+            <p className="text-xs text-slate-400">Formatos aceitos: PDF, DOC, DOCX, XLS, XLSX, CSV, TXT, PNG, JPG, JPEG, WEBP, ZIP e RAR. Limite: 10 MB.</p>
             <Select label="Categoria" value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })}>
               {documentCategories.map((category) => <option key={category.value} value={category.value}>{category.label}</option>)}
             </Select>
@@ -98,7 +104,7 @@ export default function Documents() {
                     <span className="grid h-10 w-10 place-items-center rounded-2xl bg-blue-500/20 text-sky-200"><FileText size={18} /></span>
                     <div>
                       <strong>{document.name}</strong>
-                      <p className="text-sm text-slate-400">{document.category} - {formatBytes(document.size_bytes)}</p>
+                      <p className="text-sm text-slate-400">{document.category} - {formatBytes(document.size_bytes)}{document.client?.name ? ` - ${document.client.name}` : ''}</p>
                     </div>
                   </div>
                   <div className="flex gap-2">

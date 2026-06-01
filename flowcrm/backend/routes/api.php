@@ -10,9 +10,11 @@ use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\ExpenseController;
+use App\Http\Controllers\Api\ClientRelationController;
 use App\Http\Controllers\Api\NoteController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\UserController;
@@ -36,9 +38,21 @@ Route::middleware(['auth:sanctum', 'super.admin'])->prefix('admin')->group(funct
 });
 
 Route::middleware(['auth:sanctum', 'current.company'])->group(function () {
+    Route::get('search', SearchController::class);
     Route::get('dashboard', DashboardController::class);
 
     Route::apiResource('clients', ClientController::class);
+    Route::get('clients/{client}/activities', [ClientRelationController::class, 'activities']);
+    Route::get('clients/{client}/tasks', [ClientRelationController::class, 'tasks']);
+    Route::post('clients/{client}/tasks', [ClientRelationController::class, 'storeTask']);
+    Route::get('clients/{client}/appointments', [ClientRelationController::class, 'appointments']);
+    Route::post('clients/{client}/appointments', [ClientRelationController::class, 'storeAppointment']);
+    Route::get('clients/{client}/payments', [ClientRelationController::class, 'payments']);
+    Route::post('clients/{client}/payments', [ClientRelationController::class, 'storePayment']);
+    Route::get('clients/{client}/documents', [ClientRelationController::class, 'documents']);
+    Route::post('clients/{client}/documents', [ClientRelationController::class, 'storeDocument']);
+    Route::get('clients/{client}/notes', [ClientRelationController::class, 'notes']);
+    Route::post('clients/{client}/notes', [ClientRelationController::class, 'storeNote']);
 
     Route::apiResource('tasks', TaskController::class);
     Route::patch('tasks/{task}/complete', [TaskController::class, 'complete']);
@@ -57,8 +71,10 @@ Route::middleware(['auth:sanctum', 'current.company'])->group(function () {
     Route::apiResource('notes', NoteController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::get('settings', [SettingController::class, 'show']);
     Route::put('settings', [SettingController::class, 'update']);
+    Route::patch('settings/theme', [SettingController::class, 'theme']);
     Route::get('notifications', [NotificationController::class, 'index']);
     Route::patch('notifications/{notification}/read', [NotificationController::class, 'read']);
+    Route::patch('notifications/read-all', [NotificationController::class, 'readAll']);
     Route::get('profile', [UserController::class, 'profile']);
     Route::put('profile', [UserController::class, 'updateProfile']);
     Route::apiResource('users', UserController::class)->only(['index', 'store', 'update', 'destroy']);

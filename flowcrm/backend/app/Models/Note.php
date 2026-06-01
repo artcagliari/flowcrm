@@ -12,4 +12,7 @@ class Note extends CompanyModel
     protected $fillable = ['company_id', 'user_id', 'client_id', 'lead_id', 'content', 'body', 'type', 'is_private'];
 
     protected $casts = ['is_private' => 'boolean'];
+
+    public function client() { return $this->belongsTo(Client::class); }
+    public function user() { return $this->belongsTo(User::class); }
 }

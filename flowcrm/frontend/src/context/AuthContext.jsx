@@ -1,5 +1,6 @@
 import { createContext, useCallback, useEffect, useMemo, useState } from 'react';
 import * as authApi from '../api/auth';
+import { applyCompanyTheme } from '../utils/theme';
 
 export const AuthContext = createContext(null);
 
@@ -12,6 +13,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem('flowcrm_token', session.token);
     if (session.company?.id) localStorage.setItem('flowcrm_company_id', session.company.id);
     else localStorage.removeItem('flowcrm_company_id');
+    applyCompanyTheme(session.company?.primary_color);
     setUser(session.user);
     setCompany(session.company);
   }, []);
@@ -24,6 +26,7 @@ export function AuthProvider({ children }) {
         setCompany(data.company);
         if (data.company?.id) localStorage.setItem('flowcrm_company_id', data.company.id);
         else localStorage.removeItem('flowcrm_company_id');
+        applyCompanyTheme(data.company?.primary_color);
       })
       .finally(() => setLoading(false));
   }, []);

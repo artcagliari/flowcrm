@@ -21,5 +21,6 @@ class Client extends CompanyModel
     public function payments() { return $this->hasMany(Payment::class); }
     public function notes() { return $this->hasMany(Note::class); }
     public function documents() { return $this->hasMany(Document::class); }
+    public function activities() { return $this->hasMany(Activity::class); }
     public function tags() { return $this->belongsToMany(Tag::class); }
 }

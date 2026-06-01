@@ -23,7 +23,7 @@ export default function Sidebar({ open, onClose, user }) {
       </div>
       <nav className="sidebar-scroll grid max-h-[calc(100vh-180px)] gap-1 overflow-auto pr-1">
         {items.map(([to, label, Icon]) => (
-          <NavLink onClick={onClose} to={to} key={to} className={({ isActive }) => `flex min-h-11 items-center gap-3 rounded-2xl border px-3 text-sm transition hover:-translate-y-0.5 ${isActive ? 'border-blue-400/40 bg-white/10 text-white' : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'}`}>
+          <NavLink onClick={onClose} to={to} key={to} className={({ isActive }) => `flex min-h-11 items-center gap-3 rounded-2xl border px-3 text-sm transition hover:-translate-y-0.5 ${isActive ? 'border-[color:var(--primary)] bg-white/10 text-white' : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'}`}>
             <Icon size={18} /> {label}
           </NavLink>
         ))}
