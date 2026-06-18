@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\PlanLimiter;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -29,9 +30,11 @@ class UserController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, PlanLimiter $planLimiter)
     {
         abort_unless($this->canManageUsers($request), 403);
+        $company = $request->attributes->get('current_company');
+        abort_unless($planLimiter->canAddUser($company), 403, 'Limite de usuarios do plano atingido.');
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:160'],

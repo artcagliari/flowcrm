@@ -172,9 +172,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->string('type', 40)->default('reuniao');
             $table->string('status', 40)->default('agendado');
-            $table->timestamp('start_at')->nullable();
-            $table->timestamp('end_at')->nullable();
-            $table->timestamp('starts_at');
+            $table->timestamp('starts_at')->nullable();
             $table->timestamp('ends_at')->nullable();
             $table->string('location')->nullable();
             $table->timestamp('reminder_at')->nullable();
@@ -189,10 +187,9 @@ return new class extends Migration
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('client_id')->nullable()->constrained()->cascadeOnDelete();
             $table->foreignId('lead_id')->nullable()->constrained()->cascadeOnDelete();
-            $table->text('content')->nullable();
+            $table->text('content');
             $table->string('type', 40)->default('geral');
             $table->boolean('is_private')->default(false);
-            $table->text('body');
             $table->timestamps();
             $table->softDeletes();
         });
@@ -267,6 +264,7 @@ return new class extends Migration
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('client_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('lead_id')->nullable()->constrained()->nullOnDelete();
             $table->nullableMorphs('subject');
             $table->string('action', 120)->default('registro');
             $table->string('description');
@@ -318,8 +316,6 @@ return new class extends Migration
         Schema::create('settings', function (Blueprint $table) {
             $table->id();
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
-            $table->string('key', 120)->nullable();
-            $table->json('value')->nullable();
             $table->string('type', 40)->default('string');
             $table->string('setting_key', 120);
             $table->json('setting_value')->nullable();

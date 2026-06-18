@@ -1,15 +1,17 @@
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Tooltip, XAxis } from 'recharts';
-import { AlertCircle, CalendarDays, CheckCircle2, ListChecks, TrendingUp, Users, Wallet } from 'lucide-react';
+import { AlertCircle, CalendarDays, CheckCircle2, ListChecks, Sparkles, UserPlus, Users, Wallet } from 'lucide-react';
 import ChartCard from '../components/dashboard/ChartCard';
 import StatCard from '../components/dashboard/StatCard';
 import Card from '../components/ui/Card';
 import Skeleton from '../components/ui/Skeleton';
 import PageHeader from '../components/shared/PageHeader';
 import { useDashboard } from '../hooks/useDashboard';
+import useProfessionMode from '../hooks/useProfessionMode';
 import { formatCurrency } from '../utils/formatCurrency';
 import { formatDate, formatDateTime } from '../utils/formatDate';
 
 export default function Dashboard() {
+  const { config } = useProfessionMode();
   const { data, loading } = useDashboard();
   if (loading) return <div className="grid gap-4 lg:grid-cols-4"><Skeleton /><Skeleton /><Skeleton /><Skeleton /></div>;
 
@@ -17,17 +19,30 @@ export default function Dashboard() {
 
   return (
     <>
-      <PageHeader title="Dashboard" subtitle="Resumo geral da sua operacao, com clientes, tarefas, agenda e financeiro." />
+      <PageHeader title="Dashboard" subtitle={config.dashboardSubtitle} />
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard icon={Users} label="Clientes ativos" value={stats.active_clients || 0} trend={`${stats.clients || 0} no total`} />
-        <StatCard icon={ListChecks} label="Tarefas pendentes" value={stats.pending_tasks || 0} trend={`${stats.late_tasks || 0} atrasadas`} />
-        <StatCard icon={AlertCircle} label="Tarefas atrasadas" value={stats.late_tasks || 0} trend="Exigem atencao" />
+        <StatCard icon={Users} label={`${config.clientsLabel} ativos`} value={stats.active_clients || 0} trend={`${stats.clients || 0} no total`} />
+        <StatCard icon={UserPlus} label="Contatos pendentes" value={stats.open_contacts || 0} trend="Aguardando acao" />
+        <StatCard
+          icon={Sparkles}
+          label="Compromissos agendados"
+          value={stats.active_cases || 0}
+          trend="Proximos na agenda"
+        />
         <StatCard icon={CalendarDays} label="Compromissos hoje" value={stats.today_appointments || 0} trend="Agenda do dia" />
+        <StatCard icon={ListChecks} label="Tarefas pendentes" value={stats.pending_tasks || 0} trend={`${stats.late_tasks || 0} atrasadas`} />
         <StatCard icon={CheckCircle2} label="Receitas do mes" value={formatCurrency(stats.monthly_revenue)} trend="Recebido" />
-        <StatCard icon={AlertCircle} label="Despesas do mes" value={formatCurrency(stats.monthly_expenses)} trend="Pago" />
         <StatCard icon={Wallet} label="Pagamentos pendentes" value={stats.pending_payments || 0} trend={`${stats.late_payments || 0} atrasados`} />
-        <StatCard icon={TrendingUp} label="Pagamentos atrasados" value={stats.late_payments || 0} trend={formatCurrency(stats.estimated_profit)} />
+        <StatCard icon={AlertCircle} label="Resultado do mes" value={formatCurrency(stats.estimated_profit)} trend="Receita - despesas" />
       </section>
+      <Card className="mt-4">
+        <DashboardList
+          title="Leads recentes"
+          items={data.pending_contacts}
+          empty="Nenhum lead pendente."
+          render={(item) => `${item.name} — ${item.status || 'novo'} — ${item.phone || item.whatsapp || 'Sem telefone'}`}
+        />
+      </Card>
       <section className="mt-4 grid gap-4 xl:grid-cols-[1.4fr_.8fr]">
         <ChartCard title="Receita mensal">
           <AreaChart data={data.monthly_revenue_chart || []}>
@@ -37,7 +52,7 @@ export default function Dashboard() {
             <Area dataKey="value" stroke="#7DD3FC" fill="#4F8CFF" fillOpacity={0.24} />
           </AreaChart>
         </ChartCard>
-        <ChartCard title="Clientes por status">
+        <ChartCard title={`${config.clientsLabel} por status`}>
           <BarChart data={data.clients_by_status || []}>
             <XAxis dataKey="name" stroke="#94A3B8" />
             <Tooltip />

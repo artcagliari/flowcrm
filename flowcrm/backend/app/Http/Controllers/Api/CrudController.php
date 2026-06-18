@@ -6,9 +6,11 @@ use App\Http\Controllers\Api\Concerns\RespondsWithJson;
 use App\Http\Controllers\Api\Concerns\AuthorizesCompanyAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Activity;
+use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\Lead;
 use App\Models\Notification;
+use App\Services\WebhookDispatcher;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
@@ -39,8 +41,8 @@ abstract class CrudController extends Controller
             });
         }
 
-        foreach (['status', 'priority', 'origin', 'type', 'payment_method', 'category', 'user_id', 'owner_id', 'client_id'] as $filter) {
-            if ($request->filled($filter)) {
+        foreach (['status', 'priority', 'origin', 'type', 'payment_method', 'category', 'temperature', 'lead_stage_id', 'user_id', 'owner_id', 'client_id'] as $filter) {
+            if ($request->filled($filter) && in_array($filter, $query->getModel()->getFillable(), true)) {
                 $query->where($filter, $request->query($filter));
             }
         }
@@ -73,6 +75,7 @@ abstract class CrudController extends Controller
         $record = $this->model::create($data);
         $this->activity($request, 'criado', 'Registro criado.', $record);
         $this->notification($request, $record, 'created');
+        $this->dispatchWebhook($request, $record, 'created');
 
         return $this->success(new $this->resource($record->load($this->with)), 'Registro criado com sucesso.', 201);
     }
@@ -80,10 +83,20 @@ abstract class CrudController extends Controller
     protected function updateRecord(Request $request, Model $record, array $data)
     {
         $this->abortIfDifferentCompany($request, $record);
+        $this->authorizeRecord('update', $record);
         $this->abortUnlessCanManageModule($request, $this->moduleForRecord($record));
+        $previous = $record->getOriginal();
         $record->update($data);
         $this->activity($request, 'atualizado', 'Registro atualizado.', $record);
         $this->notification($request, $record, 'updated');
+        $this->dispatchWebhook($request, $record, 'updated', ['previous' => $previous]);
+
+        if ($record instanceof Client && array_key_exists('status', $data) && ($previous['status'] ?? null) !== $record->status) {
+            $this->dispatchWebhook($request, $record, 'status_changed', [
+                'previous_status' => $previous['status'] ?? null,
+                'status' => $record->status,
+            ]);
+        }
 
         return $this->success(new $this->resource($record->fresh($this->with)));
     }
@@ -91,6 +104,7 @@ abstract class CrudController extends Controller
     protected function showRecord(Request $request, Model $record)
     {
         $this->abortIfDifferentCompany($request, $record);
+        $this->authorizeRecord('view', $record);
 
         return $this->success(new $this->resource($record->load($this->with)));
     }
@@ -98,6 +112,7 @@ abstract class CrudController extends Controller
     protected function destroyRecord(Request $request, Model $record)
     {
         $this->abortIfDifferentCompany($request, $record);
+        $this->authorizeRecord('delete', $record);
         $this->abortUnlessCanManageModule($request, $this->moduleForRecord($record));
         $record->delete();
         $this->activity($request, 'excluido', 'Registro excluido.', $record);
@@ -108,6 +123,16 @@ abstract class CrudController extends Controller
     protected function abortIfDifferentCompany(Request $request, Model $record): void
     {
         abort_if((int) $record->company_id !== $this->companyId($request), 403, 'Registro nao pertence a empresa atual.');
+    }
+
+    /**
+     * Run the model policy for the given ability when one is registered.
+     */
+    protected function authorizeRecord(string $ability, Model $record): void
+    {
+        if (\Illuminate\Support\Facades\Gate::getPolicyFor($record) !== null) {
+            $this->authorize($ability, $record);
+        }
     }
 
     protected function activity(Request $request, string $action, string $description, Model $record): void
@@ -162,6 +187,27 @@ abstract class CrudController extends Controller
             'body' => $payload[1],
             'type' => $payload[2],
             'action_url' => $payload[3],
+        ]);
+    }
+
+    protected function dispatchWebhook(Request $request, Model $record, string $event, array $context = []): void
+    {
+        $prefix = match ($record::class) {
+            Client::class => 'client',
+            Lead::class => 'lead',
+            Appointment::class => 'appointment',
+            default => null,
+        };
+
+        if (! $prefix) {
+            return;
+        }
+
+        app(WebhookDispatcher::class)->dispatch($this->companyId($request), "{$prefix}.{$event}", [
+            'event' => "{$prefix}.{$event}",
+            'company_id' => $this->companyId($request),
+            'data' => $record->toArray(),
+            'context' => $context,
         ]);
     }
 }

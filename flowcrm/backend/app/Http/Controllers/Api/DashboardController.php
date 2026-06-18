@@ -20,7 +20,10 @@ class DashboardController extends Controller
 
     public function __invoke(Request $request)
     {
-        $companyId = $request->attributes->get('current_company')->id;
+        $company = $request->attributes->get('current_company');
+        $companyId = $company->id;
+        $mode = $company->profession_mode ?? 'empresa';
+
         app(CrmOverdueMarker::class)->markForCompany($companyId);
         $month = now()->month;
         $year = now()->year;
@@ -37,12 +40,19 @@ class DashboardController extends Controller
             ->whereYear('paid_at', $year)
             ->sum('amount');
 
+        $openContactStatuses = ['encaminhado', 'descartado'];
+
         return $this->success([
+            'profession_mode' => $mode,
             'stats' => [
                 'clients' => Client::where('company_id', $companyId)->count(),
-                'active_clients' => Client::where('company_id', $companyId)->where('status', 'ativo')->count(),
+                'active_clients' => Client::where('company_id', $companyId)->whereIn('status', ['encaminhado', 'ativo', 'em_atendimento', 'agendado'])->count(),
                 'leads' => Lead::where('company_id', $companyId)->count(),
-                'open_leads' => Lead::where('company_id', $companyId)->whereNotIn('status', ['convertido', 'perdido'])->count(),
+                'open_contacts' => Lead::where('company_id', $companyId)->whereNotIn('status', $openContactStatuses)->count(),
+                'active_cases' => Appointment::where('company_id', $companyId)
+                    ->whereIn('status', ['agendado', 'confirmado'])
+                    ->where(fn ($q) => $q->where('starts_at', '>=', now())->orWhere('start_at', '>=', now()))
+                    ->count(),
                 'pending_tasks' => Task::where('company_id', $companyId)->whereIn('status', ['pendente', 'em andamento'])->count(),
                 'late_tasks' => Task::where('company_id', $companyId)
                     ->where(function ($query) {
@@ -77,6 +87,11 @@ class DashboardController extends Controller
                 ->latest()
                 ->limit(5)
                 ->get(),
+            'pending_contacts' => Lead::where('company_id', $companyId)
+                ->whereNotIn('status', $openContactStatuses)
+                ->latest('last_interaction_at')
+                ->limit(5)
+                ->get(['id', 'name', 'phone', 'whatsapp', 'status', 'last_interaction_at']),
             'monthly_revenue_chart' => collect(range(1, 12))->map(fn ($chartMonth) => [
                 'month' => str_pad((string) $chartMonth, 2, '0', STR_PAD_LEFT),
                 'value' => (float) Payment::where('company_id', $companyId)
@@ -86,10 +101,6 @@ class DashboardController extends Controller
                     ->sum('amount'),
             ]),
             'clients_by_status' => Client::where('company_id', $companyId)
-                ->selectRaw('status as name, count(*) as value')
-                ->groupBy('status')
-                ->get(),
-            'leads_by_status' => Lead::where('company_id', $companyId)
                 ->selectRaw('status as name, count(*) as value')
                 ->groupBy('status')
                 ->get(),

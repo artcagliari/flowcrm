@@ -6,6 +6,13 @@ use Illuminate\Validation\Rule;
 
 class StoreAdminCompanyRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $company = $this->input('company', []);
+        $company['profession_mode'] = 'empresa';
+        $this->merge(['company' => $company]);
+    }
+
     public function rules(): array
     {
         return [
@@ -20,6 +27,7 @@ class StoreAdminCompanyRequest extends FormRequest
             'company.address' => ['nullable', 'string', 'max:255'],
             'company.zip_code' => ['nullable', 'string', 'max:20'],
             'company.type' => ['required', Rule::in(['company', 'autonomous'])],
+            'company.profession_mode' => ['required', Rule::in(['empresa'])],
             'company.status' => ['required', Rule::in(['active', 'inactive', 'suspended'])],
             'company.plan_name' => ['nullable', 'string', 'max:120'],
             'company.max_users' => ['nullable', 'integer', 'min:1'],

@@ -9,7 +9,7 @@ class Note extends CompanyModel
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['company_id', 'user_id', 'client_id', 'lead_id', 'content', 'body', 'type', 'is_private'];
+    protected $fillable = ['company_id', 'user_id', 'client_id', 'lead_id', 'content', 'type', 'is_private', 'sensitivity_level'];
 
     protected $casts = ['is_private' => 'boolean'];
 

@@ -13,7 +13,7 @@ class TaskController extends CrudController
 {
     protected string $model = Task::class;
     protected string $resource = TaskResource::class;
-    protected array $with = ['user', 'owner', 'client'];
+    protected array $with = ['user', 'owner', 'client', 'lead'];
 
     public function index(Request $request)
     {

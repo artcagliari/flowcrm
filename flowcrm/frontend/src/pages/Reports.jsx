@@ -36,18 +36,20 @@ import Card from '../components/ui/Card';
 import EmptyState from '../components/ui/EmptyState';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
+import useProfessionMode from '../hooks/useProfessionMode';
 import { formatCurrency } from '../utils/formatCurrency';
+
+const colors = ['#4F8CFF', '#7DD3FC', '#22C55E', '#FACC15', '#EF4444', '#A78BFA', '#38BDF8', '#94A3B8'];
 
 const sections = [
   { id: 'overview', label: 'Visao geral', icon: Activity },
   { id: 'finance', label: 'Gastos e receita', icon: Wallet },
   { id: 'appointments', label: 'Agendamentos', icon: CalendarDays },
   { id: 'clients', label: 'Clientes', icon: Users },
-  { id: 'leads', label: 'Leads', icon: TrendingUp },
+  { id: 'leads', label: 'Contatos', icon: TrendingUp },
   { id: 'tasks', label: 'Tarefas', icon: CheckCircle2 },
 ];
 
-const colors = ['#4F8CFF', '#7DD3FC', '#22C55E', '#FACC15', '#EF4444', '#A78BFA', '#38BDF8', '#94A3B8'];
 const emptyReports = {
   overview: {},
   clients: {},
@@ -222,6 +224,7 @@ function MonthlyLine({ data, color = '#7DD3FC' }) {
 }
 
 export default function Reports() {
+  const { config } = useProfessionMode();
   const [active, setActive] = useState('overview');
   const [filters, setFilters] = useState({ from: today(-30), to: today() });
   const [reports, setReports] = useState(emptyReports);
@@ -244,7 +247,7 @@ export default function Reports() {
 
   return (
     <>
-      <PageHeader title="Relatorios" subtitle="Indicadores separados por financeiro, agendamentos, clientes, leads e tarefas." />
+      <PageHeader title="Relatorios" subtitle={`Indicadores do ${config.workspace.toLowerCase()}: financeiro, agenda, ${config.clientsLabel.toLowerCase()} e contatos.`} />
 
       <Card className="mb-5">
         <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-end">
@@ -287,14 +290,14 @@ export default function Reports() {
           {active === 'overview' && (
             <div className="grid gap-4">
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <ReportStat icon={Users} label="Clientes no periodo" value={overview.clients || 0} detail="Novos registros filtrados" />
-                <ReportStat icon={TrendingUp} label="Leads no periodo" value={overview.leads || 0} detail="Entradas comerciais" />
+                <ReportStat icon={Users} label={`${config.clientsLabel} no periodo`} value={overview.clients || 0} detail="Novos registros filtrados" />
+                <ReportStat icon={TrendingUp} label="Contatos no periodo" value={overview.leads || 0} detail="Primeiros contatos recebidos" />
                 <ReportStat icon={Wallet} label="Lucro estimado" value={formatCurrency(profit)} detail="Receita paga menos gastos pagos" tone={profit >= 0 ? 'green' : 'red'} />
                 <ReportStat icon={CalendarDays} label="Agendamentos" value={overview.appointments || 0} detail="Compromissos do periodo" tone="amber" />
               </div>
               <div className="grid gap-4 xl:grid-cols-2">
                 <ChartCard title="Receita x gastos"><FinanceTrend revenue={reports.finance?.monthly_revenue} expenses={reports.finance?.monthly_expenses} /></ChartCard>
-                <ChartCard title="Leads por origem"><SimpleBarChart data={reports.leads?.by_origin} color="#7DD3FC" /></ChartCard>
+                <ChartCard title="Contatos por origem"><SimpleBarChart data={reports.leads?.by_origin} color="#7DD3FC" /></ChartCard>
               </div>
             </div>
           )}
@@ -341,25 +344,23 @@ export default function Reports() {
 
           {active === 'clients' && (
             <div className="grid gap-4 xl:grid-cols-2">
-              <ChartCard title="Clientes por status"><SimplePieChart data={reports.clients?.by_status} /></ChartCard>
-              <ChartCard title="Clientes por origem"><SimpleBarChart data={reports.clients?.by_origin} /></ChartCard>
-              <ChartCard title="Novos clientes por mes"><MonthlyLine data={reports.clients?.new_by_month} color="#22C55E" /></ChartCard>
-              <ChartCard title="Cidades com mais clientes"><SimpleBarChart data={reports.clients?.by_city} color="#7DD3FC" /></ChartCard>
+              <ChartCard title={`${config.clientsLabel} por status`}><SimplePieChart data={reports.clients?.by_status} /></ChartCard>
+              <ChartCard title={`${config.clientsLabel} por origem`}><SimpleBarChart data={reports.clients?.by_origin} /></ChartCard>
+              <ChartCard title={`Novos ${config.clientsLabel.toLowerCase()} por mes`}><MonthlyLine data={reports.clients?.new_by_month} color="#22C55E" /></ChartCard>
+              <ChartCard title="Cidades"><SimpleBarChart data={reports.clients?.by_city} color="#7DD3FC" /></ChartCard>
             </div>
           )}
 
           {active === 'leads' && (
             <div className="grid gap-4">
-              <div className="grid gap-4 md:grid-cols-3">
-                <ReportStat icon={TrendingUp} label="Taxa de conversao" value={`${reports.leads?.conversion_rate || 0}%`} detail="Leads convertidos sobre o total" tone="green" />
-                <ReportStat icon={BarChart3} label="Total de leads" value={overview.leads || 0} detail="Dentro do periodo filtrado" />
-                <ReportStat icon={Wallet} label="Valor em pipeline" value={formatCurrency(chartData(reports.leads?.estimated_by_stage).reduce((sum, item) => sum + item.value, 0))} tone="amber" />
+              <div className="grid gap-4 md:grid-cols-2">
+                <ReportStat icon={TrendingUp} label="Taxa de conversao" value={`${reports.leads?.conversion_rate || 0}%`} detail="Contatos que viraram clientes" tone="green" />
+                <ReportStat icon={BarChart3} label="Total de contatos" value={overview.leads || 0} detail="Dentro do periodo filtrado" />
               </div>
               <div className="grid gap-4 xl:grid-cols-2">
-                <ChartCard title="Leads por status"><SimpleBarChart data={reports.leads?.by_status} /></ChartCard>
-                <ChartCard title="Leads por temperatura"><SimplePieChart data={reports.leads?.by_temperature} /></ChartCard>
-                <ChartCard title="Leads por origem"><SimpleBarChart data={reports.leads?.by_origin} color="#7DD3FC" /></ChartCard>
-                <ChartCard title="Valor estimado por etapa"><SimpleBarChart data={reports.leads?.estimated_by_stage} color="#FACC15" currency /></ChartCard>
+                <ChartCard title="Contatos por status"><SimpleBarChart data={reports.leads?.by_status} /></ChartCard>
+                <ChartCard title="Contatos por origem"><SimpleBarChart data={reports.leads?.by_origin} color="#7DD3FC" /></ChartCard>
+                <ChartCard title="Contatos por etapa"><SimpleBarChart data={reports.leads?.by_stage} color="#A78BFA" /></ChartCard>
               </div>
             </div>
           )}

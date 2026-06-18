@@ -8,11 +8,12 @@ import Button from '../ui/Button';
 
 const groups = [
   ['clients', 'Cliente', (item) => `/clients/${item.id}`, (item) => item.name, (item) => item.phone || item.email || item.status],
+  ['leads', 'Lead', (item) => `/leads/${item.id}`, (item) => item.name, (item) => item.phone || item.email || item.temperature || item.status],
   ['tasks', 'Tarefa', (item) => item.client_id ? `/clients/${item.client_id}` : '/tasks', (item) => item.title, (item) => item.client?.name || item.status],
   ['appointments', 'Agenda', (item) => item.client_id ? `/clients/${item.client_id}` : '/appointments', (item) => item.title, (item) => item.client?.name || item.status],
   ['payments', 'Pagamento', (item) => item.client_id ? `/clients/${item.client_id}` : '/finance', (item) => item.description, (item) => item.client?.name || item.status],
   ['documents', 'Documento', (item) => item.client_id ? `/clients/${item.client_id}` : '/documents', (item) => item.name, (item) => item.client?.name || item.category],
-  ['notes', 'Nota', (item) => item.client_id ? `/clients/${item.client_id}` : '/clients', (item) => item.content || item.body, (item) => item.client?.name || item.type],
+  ['notes', 'Nota', (item) => item.client_id ? `/clients/${item.client_id}` : '/clients', (item) => item.content, (item) => item.client?.name || item.type],
   ['users', 'Usuario', () => '/users', (item) => item.name, (item) => item.email],
 ];
 
@@ -55,6 +56,8 @@ export default function Navbar({ onMenu }) {
     const data = await listNotifications({ per_page: 8 });
     setNotifications(data.data || data);
   }
+
+  useEffect(() => { loadNotifications().catch(() => {}); }, []);
 
   async function openNotifications() {
     setNotificationsOpen((value) => !value);

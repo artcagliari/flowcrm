@@ -11,6 +11,7 @@ import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import Select from '../components/ui/Select';
 import Table from '../components/ui/Table';
+import EntityAutocomplete from '../components/shared/EntityAutocomplete';
 import { financialStatusOptions, paymentMethodOptions } from '../utils/constants';
 import { formatCurrency } from '../utils/formatCurrency';
 import { formatDate } from '../utils/formatDate';
@@ -26,6 +27,7 @@ export default function Finance() {
   const [error, setError] = useState('');
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({ description: '', amount: '', due_date: '', status: 'pendente', payment_method: '' });
+  const [client, setClient] = useState(null);
 
   async function load() {
     const [paymentsData, expensesData] = await Promise.all([paymentsApi.list({ per_page: 100 }), expensesApi.list({ per_page: 100 })]);
@@ -52,6 +54,7 @@ export default function Finance() {
 
   function open(type) {
     setModal(type);
+    setClient(null);
     setForm({ description: '', amount: '', due_date: '', status: 'pendente', payment_method: '' });
   }
 
@@ -59,7 +62,7 @@ export default function Finance() {
     event.preventDefault();
     setError('');
     try {
-      if (modal === 'payment') await paymentsApi.create(form);
+      if (modal === 'payment') await paymentsApi.create({ ...form, client_id: client?.id ?? null });
       else await expensesApi.create(form);
       setModal(null);
       setMessage('Operacao concluida.');
@@ -107,6 +110,7 @@ export default function Finance() {
       {(active === 'Resumo' || active === 'Despesas' || active === 'Pendentes' || active === 'Atrasados') && <FinanceTable title="Despesas" rows={visibleExpenses} empty="Voce ainda nao possui despesas cadastradas." onPaid={(id) => markPaid('expense', id)} expense />}
       <Modal title={modal === 'payment' ? 'Nova receita' : 'Nova despesa'} open={Boolean(modal)} onClose={() => setModal(null)}>
         <form onSubmit={save} className="grid gap-3">
+          {modal === 'payment' && <EntityAutocomplete label="Cliente (opcional)" types={['clients']} value={client} onSelect={setClient} placeholder="Buscar cliente..." />}
           <Input label="Descricao" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required />
           <Input label="Valor" type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required />
           <Input label="Vencimento" type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />

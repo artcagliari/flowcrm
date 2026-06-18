@@ -44,6 +44,7 @@ class AuthAndTenantTest extends TestCase
             'company' => [
                 'name' => 'Empresa Cliente',
                 'type' => 'company',
+                'profession_mode' => 'empresa',
                 'status' => 'active',
                 'plan_name' => 'Profissional',
                 'max_users' => 5,
@@ -56,7 +57,7 @@ class AuthAndTenantTest extends TestCase
             ],
         ])->assertCreated()->assertJsonPath('success', true);
 
-        $this->assertDatabaseHas('companies', ['name' => 'Empresa Cliente', 'status' => 'active']);
+        $this->assertDatabaseHas('companies', ['name' => 'Empresa Cliente', 'status' => 'active', 'profession_mode' => 'empresa']);
         $this->assertDatabaseHas('users', ['email' => 'responsavel@example.com', 'role' => 'company_admin']);
         $this->assertDatabaseHas('settings', ['setting_key' => 'timezone']);
     }

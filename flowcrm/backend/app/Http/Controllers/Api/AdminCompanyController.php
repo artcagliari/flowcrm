@@ -7,11 +7,17 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\StoreAdminCompanyRequest;
 use App\Models\Activity;
 use App\Models\Company;
+use App\Models\LeadStage;
+use App\Models\LossReason;
+use App\Models\Pipeline;
+use App\Models\Plan;
 use App\Models\Role;
 use App\Models\Setting;
+use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class AdminCompanyController extends Controller
@@ -71,6 +77,8 @@ class AdminCompanyController extends Controller
             ]);
 
             $this->createDefaultSettings($company->id);
+            $this->createDefaultStages($company->id);
+            $this->createSubscription($company);
             Activity::create([
                 'company_id' => $company->id,
                 'user_id' => $request->user()->id,
@@ -163,8 +171,66 @@ class AdminCompanyController extends Controller
         ] as $key => [$value, $type]) {
             Setting::updateOrCreate(
                 ['company_id' => $companyId, 'setting_key' => $key],
-                ['key' => $key, 'value' => $value, 'setting_value' => $value, 'type' => $type]
+                ['setting_value' => $value, 'type' => $type]
             );
         }
+    }
+
+    private function createDefaultStages(int $companyId): void
+    {
+        $pipeline = Pipeline::firstOrCreate(
+            ['company_id' => $companyId, 'is_default' => true],
+            ['name' => 'Funil comercial']
+        );
+
+        $stages = [
+            ['Novo lead', '#4F8CFF', false, false],
+            ['Qualificacao', '#38bdf8', false, false],
+            ['Proposta enviada', '#a78bfa', false, false],
+            ['Negociacao', '#f59e0b', false, false],
+            ['Fechado ganho', '#22c55e', true, false],
+            ['Fechado perdido', '#ef4444', false, true],
+        ];
+
+        foreach ($stages as $position => [$name, $color, $isWon, $isLost]) {
+            LeadStage::firstOrCreate(
+                ['company_id' => $companyId, 'pipeline_id' => $pipeline->id, 'name' => $name],
+                ['position' => $position, 'color' => $color, 'is_won' => $isWon, 'is_lost' => $isLost]
+            );
+        }
+    }
+
+    private function createSubscription(Company $company): void
+    {
+        $plan = $this->resolvePlan($company->plan_name);
+
+        Subscription::firstOrCreate(
+            ['company_id' => $company->id, 'plan_id' => $plan->id],
+            [
+                'status' => 'trial',
+                'starts_at' => $company->starts_at ?? now()->toDateString(),
+                'ends_at' => $company->expires_at ?? now()->addMonth()->toDateString(),
+            ]
+        );
+    }
+
+    private function resolvePlan(?string $planName): Plan
+    {
+        if ($planName) {
+            $plan = Plan::where('name', $planName)->first();
+            if ($plan) {
+                return $plan;
+            }
+
+            return Plan::firstOrCreate(
+                ['slug' => Str::slug($planName)],
+                ['name' => $planName, 'monthly_price' => 0]
+            );
+        }
+
+        return Plan::firstOrCreate(
+            ['slug' => 'starter'],
+            ['name' => 'Starter', 'monthly_price' => 0]
+        );
     }
 }

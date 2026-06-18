@@ -1,7 +1,9 @@
-import { ArrowRight, Ban, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, Ban, MessageSquare, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { convertLead, getLeadDetails, markLeadLost } from '../api/leads';
+import { convertLead, createLeadAppointment, createLeadNote, createLeadTask, discardContact, getLeadDetails, uploadLeadDocument } from '../api/leads';
+import Timeline from '../components/shared/Timeline';
+import WhatsappActionButton from '../components/shared/WhatsappActionButton';
 import PageHeader from '../components/shared/PageHeader';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
@@ -9,8 +11,11 @@ import Card from '../components/ui/Card';
 import EmptyState from '../components/ui/EmptyState';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
-import { formatCurrency } from '../utils/formatCurrency';
-import { formatDate, formatDateTime } from '../utils/formatDate';
+import Select from '../components/ui/Select';
+import Textarea from '../components/ui/Textarea';
+import useProfessionMode from '../hooks/useProfessionMode';
+import { appointmentStatusOptions, contactStatusOptions, taskPriorityOptions, taskStatusOptions } from '../utils/constants';
+import { formatDate, formatDateTime, toApiDateTime } from '../utils/formatDate';
 import { handleApiError } from '../utils/handleApiError';
 
 const tabs = ['Visao geral', 'Historico', 'Tarefas', 'Agenda', 'Documentos', 'Notas'];
@@ -18,95 +23,123 @@ const tabs = ['Visao geral', 'Historico', 'Tarefas', 'Agenda', 'Documentos', 'No
 export default function LeadDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { config } = useProfessionMode();
   const [data, setData] = useState(null);
   const [active, setActive] = useState('Visao geral');
-  const [lostOpen, setLostOpen] = useState(false);
-  const [lostReason, setLostReason] = useState('');
+  const [discardOpen, setDiscardOpen] = useState(false);
+  const [discardReason, setDiscardReason] = useState('');
+  const [modal, setModal] = useState(null);
+  const [form, setForm] = useState({});
+  const [file, setFile] = useState(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const targetLabel = 'cliente';
 
-  async function load() {
-    setData(await getLeadDetails(id));
-  }
-
+  async function load() { setData(await getLeadDetails(id)); }
   useEffect(() => { load(); }, [id]);
 
-  async function convert() {
+  function open(type) {
+    setModal(type);
+    setError('');
+    setForm(type === 'task' ? { status: 'pendente', priority: 'media' } : type === 'appointment' ? { status: 'agendado', type: 'reuniao' } : {});
+  }
+
+  async function submit(event) {
+    event.preventDefault();
+    setError('');
+    try {
+      if (modal === 'task') await createLeadTask(id, form);
+      if (modal === 'appointment') await createLeadAppointment(id, { ...form, starts_at: toApiDateTime(form.date, form.start_time), ends_at: form.end_time ? toApiDateTime(form.date, form.end_time) : null });
+      if (modal === 'note') await createLeadNote(id, { content: form.body, type: form.type || 'geral' });
+      if (modal === 'document') await uploadLeadDocument(id, { ...form, file });
+      setModal(null);
+      setFile(null);
+      setMessage('Salvo.');
+      await load();
+    } catch (err) {
+      setError(handleApiError(err, 'Nao foi possivel salvar.').message);
+    }
+  }
+
+  async function forward() {
     setError('');
     try {
       const result = await convertLead(id);
       navigate(`/clients/${result.client.id}`);
     } catch (err) {
-      setError(handleApiError(err, 'Nao foi possivel converter o lead.').message);
+      setError(handleApiError(err, 'Nao foi possivel encaminhar.').message);
     }
   }
 
-  async function lose(event) {
+  async function discard(event) {
     event.preventDefault();
     setError('');
     try {
-      await markLeadLost(id, lostReason);
-      setLostOpen(false);
-      setMessage('Lead marcado como perdido.');
+      await discardContact(id, { lost_reason: discardReason });
+      setDiscardOpen(false);
+      setMessage('Contato descartado.');
       await load();
     } catch (err) {
-      setError(handleApiError(err, 'Nao foi possivel marcar como perdido.').message);
+      setError(handleApiError(err, 'Nao foi possivel descartar.').message);
     }
   }
 
   if (!data) return null;
   const lead = data.lead;
+  const statusLabel = contactStatusOptions.find((o) => o.value === lead.status)?.label || lead.status;
 
   return (
     <>
-      <PageHeader title={lead.name} subtitle="Acompanhe qualificacao, tarefas, agenda e materiais antes da conversao.">
-        <Button variant="secondary" onClick={() => setLostOpen(true)}><Ban size={16} /> Perdido</Button>
-        <Button onClick={convert}><ArrowRight size={16} /> Converter em cliente</Button>
+      <PageHeader title={lead.name} subtitle="Lead em prospeccao. Converta em cliente quando fechar o negocio.">
+        <Button variant="secondary" onClick={() => open('appointment')}><Plus size={16} /> Agendar reuniao</Button>
+        <Button variant="secondary" onClick={() => open('note')}><MessageSquare size={16} /> Nota</Button>
+        <WhatsappActionButton leadId={Number(id)} phone={lead.phone} whatsapp={lead.whatsapp} label="Mensagem WhatsApp" />
+        {lead.status !== 'encaminhado' && lead.status !== 'descartado' && (
+          <>
+            <Button variant="secondary" onClick={() => setDiscardOpen(true)}><Ban size={16} /> Descartar</Button>
+            <Button onClick={forward}><ArrowRight size={16} /> Encaminhar para {targetLabel}</Button>
+          </>
+        )}
       </PageHeader>
-      {message && <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-green-400/20 bg-green-500/10 px-4 py-2 text-sm text-green-200"><CheckCircle2 size={16} /> {message}</p>}
+      {message && <p className="mb-4 rounded-2xl border border-green-400/20 bg-green-500/10 p-3 text-sm text-green-200">{message}</p>}
       {error && <p className="mb-4 rounded-2xl border border-red-400/20 bg-red-500/10 p-3 text-sm text-red-200">{error}</p>}
       <div className="mb-4 flex flex-wrap gap-2">{tabs.map((tab) => <Button key={tab} variant={active === tab ? 'primary' : 'secondary'} onClick={() => setActive(tab)}>{tab}</Button>)}</div>
-      {active === 'Visao geral' && <Overview lead={lead} />}
-      {active === 'Historico' && <SimpleList items={data.activities} empty="Nenhuma atividade registrada." render={(item) => <><Badge>{item.action}</Badge><strong className="ml-2">{item.description}</strong><p className="text-sm text-slate-400">{formatDateTime(item.created_at)} - {item.user?.name || 'Sistema'}</p></>} />}
-      {active === 'Tarefas' && <SimpleList items={data.tasks} empty="Nenhuma tarefa vinculada." render={(item) => <><strong>{item.title}</strong><p className="text-sm text-slate-400">{item.priority} - {item.status} - {formatDateTime(item.due_at)}</p></>} />}
-      {active === 'Agenda' && <SimpleList items={data.appointments} empty="Nenhum compromisso vinculado." render={(item) => <><strong>{item.title}</strong><p className="text-sm text-slate-400">{item.type} - {item.status} - {formatDateTime(item.start_at || item.starts_at)}</p></>} />}
-      {active === 'Documentos' && <SimpleList items={data.documents} empty="Nenhum documento vinculado." render={(item) => <><strong>{item.name}</strong><p className="text-sm text-slate-400">{item.category} - {formatDate(item.created_at)}</p></>} />}
-      {active === 'Notas' && <SimpleList items={data.notes} empty="Nenhuma nota vinculada." render={(item) => <><strong>{item.type || 'Nota'}</strong><p className="text-sm text-slate-400">{item.content || item.body}</p></>} />}
-      <Modal title="Marcar lead como perdido" open={lostOpen} onClose={() => setLostOpen(false)}>
-        <form className="grid gap-3" onSubmit={lose}>
-          <Input label="Motivo" value={lostReason} onChange={(event) => setLostReason(event.target.value)} />
+      {active === 'Visao geral' && <Overview lead={lead} statusLabel={statusLabel} />}
+      {active === 'Historico' && <Card><Timeline type="leads" id={id} /></Card>}
+      {active === 'Tarefas' && <SimpleList items={data.tasks} empty="Nenhuma tarefa." render={(item) => <><strong>{item.title}</strong><p className="text-sm text-slate-400">{item.status} · {formatDateTime(item.due_at)}</p></>} />}
+      {active === 'Agenda' && <SimpleList items={data.appointments} empty="Nenhum compromisso." render={(item) => <><strong>{item.title}</strong><p className="text-sm text-slate-400">{formatDateTime(item.starts_at)}</p></>} />}
+      {active === 'Documentos' && <SimpleList items={data.documents} empty="Nenhum documento." render={(item) => <><strong>{item.name}</strong></>} />}
+      {active === 'Notas' && <SimpleList items={data.notes} empty="Nenhuma nota." render={(item) => <><strong>{item.type || 'Nota'}</strong><p className="text-sm text-slate-400">{item.content}</p></>} />}
+      <Modal title={`Adicionar ${modal || ''}`} open={Boolean(modal)} onClose={() => setModal(null)}>
+        {error && <p className="mb-3 rounded-2xl border border-red-400/20 bg-red-500/10 p-3 text-sm text-red-200">{error}</p>}
+        <form onSubmit={submit} className="grid gap-3">
+          {modal === 'task' && <><Input label="Titulo" value={form.title || ''} onChange={(e) => setForm({ ...form, title: e.target.value })} required /><Input label="Prazo" type="datetime-local" value={form.due_at || ''} onChange={(e) => setForm({ ...form, due_at: e.target.value })} /></>}
+          {modal === 'appointment' && <><Input label="Titulo" value={form.title || ''} onChange={(e) => setForm({ ...form, title: e.target.value })} required /><Input label="Data" type="date" value={form.date || ''} onChange={(e) => setForm({ ...form, date: e.target.value })} required /><Input label="Inicio" type="time" value={form.start_time || ''} onChange={(e) => setForm({ ...form, start_time: e.target.value })} required /><Select label="Status" value={form.status || 'agendado'} onChange={(e) => setForm({ ...form, status: e.target.value })} options={appointmentStatusOptions} /></>}
+          {modal === 'document' && <><Input label="Arquivo" type="file" onChange={(e) => setFile(e.target.files?.[0])} required /></>}
+          {modal === 'note' && <><Textarea label="Nota" value={form.body || ''} onChange={(e) => setForm({ ...form, body: e.target.value })} required /></>}
           <Button>Salvar</Button>
+        </form>
+      </Modal>
+      <Modal title="Descartar contato" open={discardOpen} onClose={() => setDiscardOpen(false)}>
+        <form className="grid gap-3" onSubmit={discard}>
+          <Input label="Motivo (opcional)" value={discardReason} onChange={(e) => setDiscardReason(e.target.value)} />
+          <Button>Confirmar</Button>
         </form>
       </Modal>
     </>
   );
 }
 
-function Overview({ lead }) {
-  const fields = [
-    ['Telefone', lead.phone],
-    ['WhatsApp', lead.whatsapp],
-    ['E-mail', lead.email],
-    ['Origem', lead.origin],
-    ['Interesse', lead.interest],
-    ['Temperatura', lead.temperature],
-    ['Status', lead.status],
-    ['Valor estimado', formatCurrency(lead.estimated_value)],
-    ['Proxima acao', formatDateTime(lead.next_action_at)],
-    ['Cadastro', formatDate(lead.created_at)],
-  ];
-
+function Overview({ lead, statusLabel }) {
+  const fields = [['Celular', lead.whatsapp || lead.phone], ['E-mail', lead.email], ['Origem', lead.origin], ['Assunto', lead.interest], ['Cadastro', formatDate(lead.created_at)]];
   return (
     <Card>
-      <div className="mb-4 flex flex-wrap gap-2">
-        <Badge>{lead.status}</Badge>
-        <Badge>{lead.temperature}</Badge>
-        {lead.stage?.name && <Badge>{lead.stage.name}</Badge>}
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <Badge>{statusLabel}</Badge>
+        <WhatsappActionButton leadId={lead.id} phone={lead.phone} whatsapp={lead.whatsapp} />
       </div>
       <div className="grid gap-3 md:grid-cols-3">{fields.map(([label, value]) => <div key={label} className="rounded-2xl border border-white/10 bg-white/5 p-3"><span className="block text-xs text-slate-500">{label}</span><strong>{value || '-'}</strong></div>)}</div>
-      {lead.whatsapp && <a className="mt-4 inline-flex text-sm text-sky-300" href={`https://wa.me/${lead.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer">Abrir WhatsApp</a>}
-      {lead.notes && <p className="mt-4 text-sm text-slate-300">{lead.notes}</p>}
-      <Link className="mt-4 inline-flex text-sm text-sky-300" to="/leads">Voltar para leads</Link>
+      <Link className="mt-4 inline-flex text-sm text-sky-300" to="/leads">Voltar para contatos</Link>
     </Card>
   );
 }

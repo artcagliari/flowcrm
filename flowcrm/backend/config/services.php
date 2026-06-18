@@ -35,4 +35,34 @@ return [
         ],
     ],
 
+    'stripe' => [
+        'secret' => env('STRIPE_SECRET'),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+    ],
+
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI'),
+    ],
+
+    'whatsapp' => [
+        // 'evolution' | 'meta' | 'log'
+        'provider' => env('WHATSAPP_PROVIDER', 'log'),
+        // Shared secret validated on the public inbound webhook.
+        'webhook_token' => env('WHATSAPP_WEBHOOK_TOKEN'),
+
+        'evolution' => [
+            'base_url' => env('WHATSAPP_EVOLUTION_BASE_URL'),
+            'api_key' => env('WHATSAPP_EVOLUTION_API_KEY'),
+            'instance' => env('WHATSAPP_EVOLUTION_INSTANCE'),
+        ],
+
+        'meta' => [
+            'token' => env('WHATSAPP_META_TOKEN'),
+            'phone_number_id' => env('WHATSAPP_META_PHONE_NUMBER_ID'),
+            'api_version' => env('WHATSAPP_META_API_VERSION', 'v19.0'),
+        ],
+    ],
+
 ];

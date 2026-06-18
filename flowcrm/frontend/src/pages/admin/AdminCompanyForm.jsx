@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { createAdminCompany } from '../../api/admin';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { createAdminCompany, getAdminCompany, updateAdminCompany } from '../../api/admin';
 import PageHeader from '../../components/shared/PageHeader';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
@@ -8,15 +8,38 @@ import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import Textarea from '../../components/ui/Textarea';
 
+const emptyCompany = { name: '', legal_name: '', document: '', email: '', phone: '', whatsapp: '', city: '', state: '', address: '', zip_code: '', type: 'company', profession_mode: 'empresa', status: 'active', plan_name: '', max_users: '', starts_at: '', expires_at: '', notes: '' };
+
 const initial = {
-  company: { name: '', legal_name: '', document: '', email: '', phone: '', whatsapp: '', city: '', state: '', address: '', type: 'company', status: 'active', plan_name: '', max_users: '', starts_at: '', expires_at: '', notes: '' },
+  company: { ...emptyCompany },
   admin: { name: '', email: '', password: '', password_confirmation: '', phone: '' },
 };
 
+// Optional fields that must be sent as null (not '') so backend validation passes.
+function cleanCompanyPayload(company) {
+  const payload = { ...company };
+  ['max_users', 'starts_at', 'expires_at', 'legal_name', 'document', 'email', 'phone', 'whatsapp', 'city', 'state', 'address', 'zip_code', 'plan_name', 'notes'].forEach((key) => {
+    if (payload[key] === '') payload[key] = null;
+  });
+  return payload;
+}
+
 export default function AdminCompanyForm() {
+  const { id } = useParams();
+  const isEdit = Boolean(id);
   const [form, setForm] = useState(initial);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isEdit) return;
+    getAdminCompany(id).then((company) => {
+      setForm((current) => ({
+        ...current,
+        company: { ...emptyCompany, ...Object.fromEntries(Object.entries(company).filter(([key]) => key in emptyCompany).map(([key, value]) => [key, value ?? ''])) },
+      }));
+    });
+  }, [id, isEdit]);
 
   function setGroup(group, key, value) {
     setForm((current) => ({ ...current, [group]: { ...current[group], [key]: value } }));
@@ -26,17 +49,22 @@ export default function AdminCompanyForm() {
     e.preventDefault();
     setError('');
     try {
-      await createAdminCompany(form);
-      navigate('/admin/companies');
+      if (isEdit) {
+        await updateAdminCompany(id, cleanCompanyPayload(form.company));
+        navigate(`/admin/companies/${id}`);
+      } else {
+        await createAdminCompany(form);
+        navigate('/admin/companies');
+      }
     } catch (err) {
       const errors = err.response?.data?.errors;
-      setError(errors ? Object.values(errors).flat()[0] : err.response?.data?.message || 'Nao foi possivel criar a empresa.');
+      setError(errors ? Object.values(errors).flat()[0] : err.response?.data?.message || 'Nao foi possivel salvar a empresa.');
     }
   }
 
   return (
     <>
-      <PageHeader title="Criar empresa" subtitle="Cadastre uma nova empresa cliente e gere o acesso do administrador responsavel." />
+      <PageHeader title={isEdit ? 'Editar empresa' : 'Criar empresa'} subtitle={isEdit ? 'Atualize os dados cadastrais, plano e status da empresa cliente.' : 'Cadastre uma nova empresa cliente e gere o acesso do administrador responsavel.'} />
       {error && <p className="mb-4 rounded-2xl border border-red-400/20 bg-red-500/10 p-3 text-sm text-red-200">{error}</p>}
       <form onSubmit={submit} className="grid gap-4">
         <Card>
@@ -54,16 +82,18 @@ export default function AdminCompanyForm() {
             <Select label="Tipo" value={form.company.type} onChange={(e) => setGroup('company', 'type', e.target.value)}><option value="company">Empresa</option><option value="autonomous">Autonomo</option></Select>
           </div>
         </Card>
-        <Card>
-          <h2 className="mb-3 text-base font-bold">Dados de acesso</h2>
-          <div className="grid gap-3 md:grid-cols-2">
-            <Input label="Nome do administrador" value={form.admin.name} onChange={(e) => setGroup('admin', 'name', e.target.value)} required />
-            <Input label="E-mail de login" value={form.admin.email} onChange={(e) => setGroup('admin', 'email', e.target.value)} required />
-            <Input label="Senha" type="password" value={form.admin.password} onChange={(e) => setGroup('admin', 'password', e.target.value)} required />
-            <Input label="Confirmar senha" type="password" value={form.admin.password_confirmation} onChange={(e) => setGroup('admin', 'password_confirmation', e.target.value)} required />
-            <Input label="Telefone" value={form.admin.phone} onChange={(e) => setGroup('admin', 'phone', e.target.value)} />
-          </div>
-        </Card>
+        {!isEdit && (
+          <Card>
+            <h2 className="mb-3 text-base font-bold">Dados de acesso</h2>
+            <div className="grid gap-3 md:grid-cols-2">
+              <Input label="Nome do administrador" value={form.admin.name} onChange={(e) => setGroup('admin', 'name', e.target.value)} required />
+              <Input label="E-mail de login" value={form.admin.email} onChange={(e) => setGroup('admin', 'email', e.target.value)} required />
+              <Input label="Senha" type="password" value={form.admin.password} onChange={(e) => setGroup('admin', 'password', e.target.value)} required />
+              <Input label="Confirmar senha" type="password" value={form.admin.password_confirmation} onChange={(e) => setGroup('admin', 'password_confirmation', e.target.value)} required />
+              <Input label="Telefone" value={form.admin.phone} onChange={(e) => setGroup('admin', 'phone', e.target.value)} />
+            </div>
+          </Card>
+        )}
         <Card>
           <h2 className="mb-3 text-base font-bold">Plano e status</h2>
           <div className="grid gap-3 md:grid-cols-2">
@@ -76,8 +106,8 @@ export default function AdminCompanyForm() {
           </div>
         </Card>
         <div className="flex flex-wrap gap-2">
-          <Button>Criar empresa e acesso</Button>
-          <Link to="/admin/companies"><Button type="button" variant="secondary">Cancelar</Button></Link>
+          <Button>{isEdit ? 'Salvar alteracoes' : 'Criar empresa e acesso'}</Button>
+          <Link to={isEdit ? `/admin/companies/${id}` : '/admin/companies'}><Button type="button" variant="secondary">Cancelar</Button></Link>
         </div>
       </form>
     </>

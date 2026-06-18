@@ -12,4 +12,6 @@ export const uploadClientDocument = (id, payload) => {
   });
   return api.post(`/clients/${id}/documents`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then((r) => r.data.data);
 };
+export const exportClientData = (id) => api.get(`/clients/${id}/export-data`).then((r) => r.data);
+export const anonymizeClient = (id) => api.post(`/clients/${id}/anonymize`).then((r) => r.data);
 export default resource('/clients');

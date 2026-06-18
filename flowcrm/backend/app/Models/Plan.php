@@ -9,7 +9,7 @@ class Plan extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'slug', 'monthly_price', 'max_users', 'features'];
+    protected $fillable = ['name', 'slug', 'monthly_price', 'max_users', 'max_leads', 'stripe_price_id', 'features'];
 
     protected $casts = ['monthly_price' => 'decimal:2', 'features' => 'array'];
 }

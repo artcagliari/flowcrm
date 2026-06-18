@@ -24,7 +24,7 @@ class SettingController extends Controller
     {
         $companyId = $request->attributes->get('current_company')->id;
         foreach ($request->validated('settings') as $key => $value) {
-            Setting::updateOrCreate(['company_id' => $companyId, 'setting_key' => $key], ['key' => $key, 'value' => $value, 'setting_value' => $value]);
+            Setting::updateOrCreate(['company_id' => $companyId, 'setting_key' => $key], ['setting_value' => $value]);
         }
 
         return $this->success(Setting::where('company_id', $companyId)->pluck('setting_value', 'setting_key'), 'Configuracoes salvas.');
@@ -42,7 +42,7 @@ class SettingController extends Controller
         $company->update(['primary_color' => $data['primary_color']]);
         Setting::updateOrCreate(
             ['company_id' => $company->id, 'setting_key' => 'primary_color'],
-            ['key' => 'primary_color', 'value' => $data['primary_color'], 'setting_value' => $data['primary_color'], 'type' => 'string']
+            ['setting_value' => $data['primary_color'], 'type' => 'string']
         );
 
         return $this->success(['primary_color' => $data['primary_color'], 'company' => $company->fresh()], 'Tema atualizado com sucesso.');

@@ -46,6 +46,13 @@ class ClientRelationController extends Controller
         $this->abortUnlessCanManageModule($request, 'appointments');
         $appointment = Appointment::create([...$request->validated(), 'company_id' => $client->company_id, 'client_id' => $client->id, 'user_id' => $request->user()->id, 'owner_id' => $request->user()->id]);
         $this->activity($request, $client, 'appointment_created', 'Compromisso criado para o cliente.', $appointment);
+        app(\App\Services\GoogleCalendarService::class)->pushAppointment($appointment);
+        app(\App\Services\WebhookDispatcher::class)->dispatch((int) $client->company_id, 'appointment.created', [
+            'event' => 'appointment.created',
+            'company_id' => $client->company_id,
+            'data' => $appointment->toArray(),
+            'context' => ['client_id' => $client->id],
+        ]);
         return $this->success($appointment, 'Compromisso criado com sucesso.', 201);
     }
 

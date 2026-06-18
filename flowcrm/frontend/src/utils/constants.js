@@ -1,47 +1,43 @@
 export const STATUS_BADGE = {
+  encaminhado: 'info',
+  em_atendimento: 'success',
+  aguardando_retorno: 'warning',
+  agendado: 'info',
   ativo: 'success',
+  pausado: 'warning',
+  encerrado: 'danger',
+  arquivado: 'danger',
+  descartado: 'danger',
+  novo: 'info',
+  em_conversa: 'warning',
   pago: 'success',
   concluida: 'success',
   concluido: 'success',
-  convertido: 'success',
-  quente: 'success',
-  agendado: 'info',
-  confirmado: 'info',
   pendente: 'warning',
-  morno: 'warning',
   atrasada: 'danger',
   atrasado: 'danger',
-  frio: 'danger',
-  perdido: 'danger',
   cancelado: 'danger',
   nao_compareceu: 'danger',
 };
 
-export const leadStages = ['Novo lead', 'Primeiro contato', 'Qualificado', 'Proposta enviada', 'Negociacao', 'Fechado', 'Perdido'];
-
+/** Status do cliente — fluxo comercial da empresa */
 export const clientStatusOptions = [
+  { value: 'encaminhado', label: 'Encaminhado' },
   { value: 'ativo', label: 'Ativo' },
-  { value: 'inativo', label: 'Inativo' },
-  { value: 'em atendimento', label: 'Em atendimento' },
-  { value: 'aguardando retorno', label: 'Aguardando retorno' },
-  { value: 'perdido', label: 'Perdido' },
+  { value: 'em_atendimento', label: 'Em atendimento' },
+  { value: 'aguardando_retorno', label: 'Aguardando retorno' },
+  { value: 'agendado', label: 'Agendado' },
+  { value: 'pausado', label: 'Pausado' },
+  { value: 'encerrado', label: 'Encerrado' },
   { value: 'arquivado', label: 'Arquivado' },
 ];
 
-export const leadStatusOptions = [
+/** Contato = primeiro contato simples, sem funil */
+export const contactStatusOptions = [
   { value: 'novo', label: 'Novo' },
-  { value: 'contatado', label: 'Contatado' },
-  { value: 'qualificado', label: 'Qualificado' },
-  { value: 'proposta_enviada', label: 'Proposta enviada' },
-  { value: 'negociacao', label: 'Negociacao' },
-  { value: 'convertido', label: 'Convertido' },
-  { value: 'perdido', label: 'Perdido' },
-];
-
-export const leadTemperatureOptions = [
-  { value: 'frio', label: 'Frio' },
-  { value: 'morno', label: 'Morno' },
-  { value: 'quente', label: 'Quente' },
+  { value: 'em_conversa', label: 'Em conversa' },
+  { value: 'encaminhado', label: 'Encaminhado' },
+  { value: 'descartado', label: 'Descartado' },
 ];
 
 export const taskStatusOptions = [
@@ -68,10 +64,9 @@ export const appointmentStatusOptions = [
 
 export const appointmentTypeOptions = [
   { value: 'reuniao', label: 'Reuniao' },
-  { value: 'consulta', label: 'Consulta' },
+  { value: 'consulta', label: 'Consulta comercial' },
+  { value: 'demo', label: 'Demonstracao' },
   { value: 'visita', label: 'Visita' },
-  { value: 'ligacao', label: 'Ligacao' },
-  { value: 'audiencia', label: 'Audiencia' },
   { value: 'retorno', label: 'Retorno' },
   { value: 'atendimento online', label: 'Atendimento online' },
 ];
@@ -83,11 +78,11 @@ export const financialStatusOptions = [
 ];
 
 export const originOptions = [
+  { value: 'WhatsApp', label: 'WhatsApp' },
   { value: 'Google', label: 'Google' },
   { value: 'Instagram', label: 'Instagram' },
   { value: 'Indicacao', label: 'Indicacao' },
-  { value: 'Landing Page', label: 'Landing Page' },
-  { value: 'Evento', label: 'Evento' },
+  { value: 'Site', label: 'Site' },
 ];
 
 export const paymentMethodOptions = [

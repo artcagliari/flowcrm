@@ -222,17 +222,13 @@ class CrudPersistsToDatabaseTest extends TestCase
 
     public function test_lead_detail_and_conversion_connect_related_records_to_client(): void
     {
-        $stage = LeadStage::create(['company_id' => $this->company->id, 'name' => 'Qualificado', 'position' => 1]);
         $lead = Lead::create([
             'company_id' => $this->company->id,
             'owner_id' => $this->user->id,
-            'lead_stage_id' => $stage->id,
             'name' => 'Lead Integrado',
             'email' => 'lead.integrado@example.com',
             'phone' => '11999990000',
-            'status' => 'qualificado',
-            'temperature' => 'quente',
-            'estimated_value' => 1500,
+            'status' => 'novo',
         ]);
         $task = Task::create(['company_id' => $this->company->id, 'lead_id' => $lead->id, 'title' => 'Follow-up lead', 'status' => 'pendente']);
 
@@ -243,12 +239,12 @@ class CrudPersistsToDatabaseTest extends TestCase
 
         $clientId = $this->postJson("/api/leads/{$lead->id}/convert", [], $this->headers)
             ->assertOk()
-            ->assertJsonPath('data.lead.status', 'convertido')
+            ->assertJsonPath('data.lead.status', 'encaminhado')
             ->json('data.client.id');
 
-        $this->assertDatabaseHas('clients', ['id' => $clientId, 'company_id' => $this->company->id, 'email' => 'lead.integrado@example.com']);
+        $this->assertDatabaseHas('clients', ['id' => $clientId, 'company_id' => $this->company->id, 'email' => 'lead.integrado@example.com', 'status' => 'encaminhado']);
         $this->assertDatabaseHas('tasks', ['id' => $task->id, 'lead_id' => $lead->id, 'client_id' => $clientId]);
-        $this->assertDatabaseHas('activities', ['lead_id' => $lead->id, 'action' => 'lead_converted']);
+        $this->assertDatabaseHas('activities', ['lead_id' => $lead->id, 'action' => 'lead_forwarded']);
     }
 
     public function test_roles_limit_write_access_by_module(): void
@@ -309,7 +305,7 @@ class CrudPersistsToDatabaseTest extends TestCase
 
     public function test_dashboard_is_grouped_by_crm_areas(): void
     {
-        Client::factory()->create(['company_id' => $this->company->id, 'status' => 'ativo', 'origin' => 'Google', 'city' => 'Sao Paulo']);
+        Client::factory()->create(['company_id' => $this->company->id, 'status' => 'em_atendimento', 'origin' => 'Google', 'city' => 'Sao Paulo']);
         Task::create(['company_id' => $this->company->id, 'title' => 'Tarefa relatorio', 'status' => 'pendente', 'priority' => 'alta']);
         Appointment::create(['company_id' => $this->company->id, 'title' => 'Reuniao relatorio', 'status' => 'agendado', 'type' => 'reuniao', 'starts_at' => now()->addDay()]);
         Payment::create(['company_id' => $this->company->id, 'description' => 'Receita relatorio', 'status' => 'pago', 'amount' => 1200, 'paid_at' => now()->toDateString()]);

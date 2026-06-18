@@ -8,7 +8,6 @@ import Clients from '../pages/Clients';
 import ClientDetails from '../pages/ClientDetails';
 import Leads from '../pages/Leads';
 import LeadDetails from '../pages/LeadDetails';
-import Kanban from '../pages/Kanban';
 import Tasks from '../pages/Tasks';
 import Appointments from '../pages/Appointments';
 import Finance from '../pages/Finance';
@@ -17,6 +16,10 @@ import Reports from '../pages/Reports';
 import Settings from '../pages/Settings';
 import Notifications from '../pages/Notifications';
 import Users from '../pages/Users';
+import Deals from '../pages/Deals';
+import PipelineSettings from '../pages/PipelineSettings';
+import Automations from '../pages/Automations';
+import Integrations from '../pages/Integrations';
 import NotFound from '../pages/NotFound';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import AdminDashboard from '../pages/admin/AdminDashboard';
@@ -74,7 +77,10 @@ export default function AppRoutes() {
             <Route path="/clients/:id" element={<ClientDetails />} />
             <Route path="/leads" element={<Leads />} />
             <Route path="/leads/:id" element={<LeadDetails />} />
-            <Route path="/kanban" element={<Kanban />} />
+            <Route path="/deals" element={<Deals />} />
+            <Route path="/pipeline" element={<PipelineSettings />} />
+            <Route path="/automations" element={<Automations />} />
+            <Route path="/integrations" element={<Integrations />} />
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/appointments" element={<Appointments />} />
             <Route path="/finance" element={<Finance />} />

@@ -28,8 +28,6 @@ class StoreAppointmentRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'type' => ['nullable', 'string', 'max:40'],
             'status' => ['nullable', 'string', 'max:40'],
-            'start_at' => ['nullable', 'date'],
-            'end_at' => ['nullable', 'date', 'after_or_equal:start_at'],
             'starts_at' => ['required', 'date'],
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
             'location' => ['nullable', 'string', 'max:255'],

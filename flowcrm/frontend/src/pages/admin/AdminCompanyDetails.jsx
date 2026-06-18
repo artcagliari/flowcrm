@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { activateAdminCompany, getAdminCompany, resetAdminCompanyPassword, suspendAdminCompany } from '../../api/admin';
 import PageHeader from '../../components/shared/PageHeader';
 import Badge from '../../components/ui/Badge';
@@ -34,6 +34,7 @@ export default function AdminCompanyDetails() {
   return (
     <>
       <PageHeader title={company.name} subtitle="Dados da empresa cliente, administrador principal e status do acesso.">
+        <Link to={`/admin/companies/${id}/edit`}><Button variant="secondary">Editar</Button></Link>
         <Button variant="secondary" onClick={toggleStatus}>{company.status === 'suspended' ? 'Ativar' : 'Suspender'}</Button>
       </PageHeader>
       {message && <p className="mb-4 rounded-2xl border border-sky-300/20 bg-sky-400/10 p-3 text-sm text-sky-100">{message}</p>}
@@ -42,6 +43,7 @@ export default function AdminCompanyDetails() {
           <h2 className="mb-3 text-base font-bold">Dados da empresa</h2>
           <div className="grid gap-3 text-sm md:grid-cols-2">
             <Info label="Status" value={<Badge>{company.status}</Badge>} />
+            <Info label="Perfil" value="Empresa" />
             <Info label="Tipo" value={company.type} />
             <Info label="Plano" value={company.plan_name || '-'} />
             <Info label="Usuarios" value={company.users_count || company.users?.length || 0} />
