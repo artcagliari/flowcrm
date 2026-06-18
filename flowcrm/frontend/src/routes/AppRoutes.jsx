@@ -17,7 +17,9 @@ import Settings from '../pages/Settings';
 import Notifications from '../pages/Notifications';
 import Users from '../pages/Users';
 import Deals from '../pages/Deals';
+import PipelineBoard from '../pages/PipelineBoard';
 import PipelineSettings from '../pages/PipelineSettings';
+import WhatsappInbox from '../pages/WhatsappInbox';
 import Automations from '../pages/Automations';
 import Integrations from '../pages/Integrations';
 import NotFound from '../pages/NotFound';
@@ -78,7 +80,9 @@ export default function AppRoutes() {
             <Route path="/leads" element={<Leads />} />
             <Route path="/leads/:id" element={<LeadDetails />} />
             <Route path="/deals" element={<Deals />} />
-            <Route path="/pipeline" element={<PipelineSettings />} />
+            <Route path="/pipeline" element={<PipelineBoard />} />
+            <Route path="/pipeline/settings" element={<PipelineSettings />} />
+            <Route path="/whatsapp" element={<WhatsappInbox />} />
             <Route path="/automations" element={<Automations />} />
             <Route path="/integrations" element={<Integrations />} />
             <Route path="/tasks" element={<Tasks />} />

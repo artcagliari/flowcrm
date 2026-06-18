@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { anonymizeClient, createClientAppointment, createClientNote, createClientPayment, createClientTask, exportClientData, getClientDetails, uploadClientDocument } from '../api/clients';
 import ClientStatusSelect, { clientStatusLabel } from '../components/shared/ClientStatusSelect';
+import AiInsightsCard from '../components/shared/AiInsightsCard';
 import WhatsappActionButton from '../components/shared/WhatsappActionButton';
 import PageHeader from '../components/shared/PageHeader';
 import Badge from '../components/ui/Badge';
@@ -112,7 +113,12 @@ export default function ClientDetails() {
       </PageHeader>
       {message && <p className="mb-4 inline-flex rounded-full border border-green-400/20 bg-green-500/10 px-4 py-2 text-sm text-green-200">{message}</p>}
       <div className="mb-4 flex flex-wrap gap-2">{tabs.map((tab) => <Button key={tab} variant={active === tab ? 'primary' : 'secondary'} onClick={() => setActive(tab)}>{tab}</Button>)}</div>
-      {active === 'Visao geral' && <Overview client={client} clientId={Number(id)} onStatusChange={updateStatus} />}
+      {active === 'Visao geral' && (
+        <div className="grid gap-4 xl:grid-cols-[1fr_360px]">
+          <Overview client={client} clientId={Number(id)} onStatusChange={updateStatus} />
+          <AiInsightsCard type="client" entityId={Number(id)} />
+        </div>
+      )}
       {active === 'Historico' && <Timeline items={data.activities} />}
       {active === 'Tarefas' && <SimpleList items={data.tasks} empty="Nenhuma tarefa vinculada." render={(item) => <><strong>{item.title}</strong><p className="text-sm text-slate-400">{item.priority} · {item.status} · {formatDateTime(item.due_at)}</p></>} />}
       {active === 'Agenda' && <SimpleList items={data.appointments} empty="Nenhum compromisso vinculado." render={(item) => <><strong>{item.title}</strong><p className="text-sm text-slate-400">{item.type} · {item.status} · {formatDateTime(item.starts_at)}</p></>} />}

@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\ClientRelationController;
 use App\Http\Controllers\Api\ImportExportController;
+use App\Http\Controllers\Api\InsightsController;
 use App\Http\Controllers\Api\IntegrationController;
 use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\LeadStageController;
@@ -27,6 +28,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OpenApiController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PipelineController;
+use App\Http\Controllers\Api\PipelineBoardController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ReportPdfController;
 use App\Http\Controllers\Api\SearchController;
@@ -66,6 +68,9 @@ Route::middleware(['auth:sanctum', 'current.company'])->group(function () {
     Route::get('search', SearchController::class);
     Route::get('dashboard', DashboardController::class);
     Route::get('my-dashboard', MyDashboardController::class);
+    Route::get('pipelines/board', PipelineBoardController::class);
+    Route::get('clients/{client}/insights', [InsightsController::class, 'client']);
+    Route::get('leads/{lead}/insights', [InsightsController::class, 'lead']);
 
     Route::apiResource('pipelines', PipelineController::class)->except(['show']);
     Route::post('lead-stages', [LeadStageManageController::class, 'store']);

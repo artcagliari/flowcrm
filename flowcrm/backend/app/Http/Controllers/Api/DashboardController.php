@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Activity;
 use App\Models\Appointment;
 use App\Models\Client;
+use App\Models\Deal;
 use App\Models\Expense;
 use App\Models\Lead;
 use App\Models\Payment;
@@ -41,6 +42,12 @@ class DashboardController extends Controller
             ->sum('amount');
 
         $openContactStatuses = ['encaminhado', 'descartado'];
+        $openDeals = Deal::where('company_id', $companyId)->where('status', 'aberto')->get();
+        $wonDealsMonth = Deal::where('company_id', $companyId)
+            ->where('status', 'ganho')
+            ->whereMonth('won_at', $month)
+            ->whereYear('won_at', $year)
+            ->count();
 
         return $this->success([
             'profession_mode' => $mode,
@@ -70,6 +77,10 @@ class DashboardController extends Controller
                 'monthly_revenue' => (float) $revenue,
                 'monthly_expenses' => (float) $expenses,
                 'estimated_profit' => (float) ($revenue - $expenses),
+                'open_deals' => $openDeals->count(),
+                'pipeline_value' => (float) $openDeals->sum('value'),
+                'weighted_forecast' => (float) $openDeals->sum(fn (Deal $d) => $d->weightedValue()),
+                'deals_won_month' => $wonDealsMonth,
             ],
             'recent_activities' => Activity::where('company_id', $companyId)->latest()->limit(8)->get(),
             'upcoming_appointments' => Appointment::where('company_id', $companyId)
@@ -103,6 +114,13 @@ class DashboardController extends Controller
             'clients_by_status' => Client::where('company_id', $companyId)
                 ->selectRaw('status as name, count(*) as value')
                 ->groupBy('status')
+                ->get(),
+            'pipeline_by_stage' => Lead::where('leads.company_id', $companyId)
+                ->whereNotIn('leads.status', $openContactStatuses)
+                ->join('lead_stages', 'leads.lead_stage_id', '=', 'lead_stages.id')
+                ->selectRaw('lead_stages.name as name, count(*) as value')
+                ->groupBy('lead_stages.name', 'lead_stages.position')
+                ->orderBy('lead_stages.position')
                 ->get(),
         ]);
     }

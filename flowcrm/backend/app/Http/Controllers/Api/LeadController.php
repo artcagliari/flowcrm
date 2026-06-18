@@ -12,6 +12,7 @@ use App\Models\Lead;
 use App\Models\ProfessionalCase;
 use App\Services\AuditLogger;
 use App\Services\LeadAssigner;
+use App\Services\LeadStageTracker;
 use App\Services\PlanLimiter;
 use Illuminate\Http\Request;
 
@@ -25,6 +26,7 @@ class LeadController extends CrudController
         private LeadAssigner $assigner,
         private AuditLogger $audit,
         private PlanLimiter $planLimiter,
+        private LeadStageTracker $stageTracker,
     ) {}
 
     public function store(StoreLeadRequest $request)
@@ -72,7 +74,13 @@ class LeadController extends CrudController
     public function update(UpdateLeadRequest $request, Lead $lead)
     {
         $old = $lead->toArray();
-        $response = $this->updateRecord($request, $lead, $request->validated());
+        $data = $request->validated();
+
+        if (array_key_exists('lead_stage_id', $data) && (int) $data['lead_stage_id'] !== (int) $lead->lead_stage_id && $data['lead_stage_id']) {
+            $this->stageTracker->recordMove($lead, $lead->lead_stage_id, (int) $data['lead_stage_id'], $request->user()?->id);
+        }
+
+        $response = $this->updateRecord($request, $lead, $data);
         $this->audit->log($request, 'lead.updated', $lead, $old, $lead->fresh()->toArray());
 
         return $response;

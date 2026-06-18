@@ -2,6 +2,7 @@ import { ArrowRight, Ban, MessageSquare, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { convertLead, createLeadAppointment, createLeadNote, createLeadTask, discardContact, getLeadDetails, uploadLeadDocument } from '../api/leads';
+import AiInsightsCard from '../components/shared/AiInsightsCard';
 import Timeline from '../components/shared/Timeline';
 import WhatsappActionButton from '../components/shared/WhatsappActionButton';
 import PageHeader from '../components/shared/PageHeader';
@@ -104,7 +105,12 @@ export default function LeadDetails() {
       {message && <p className="mb-4 rounded-2xl border border-green-400/20 bg-green-500/10 p-3 text-sm text-green-200">{message}</p>}
       {error && <p className="mb-4 rounded-2xl border border-red-400/20 bg-red-500/10 p-3 text-sm text-red-200">{error}</p>}
       <div className="mb-4 flex flex-wrap gap-2">{tabs.map((tab) => <Button key={tab} variant={active === tab ? 'primary' : 'secondary'} onClick={() => setActive(tab)}>{tab}</Button>)}</div>
-      {active === 'Visao geral' && <Overview lead={lead} statusLabel={statusLabel} />}
+      {active === 'Visao geral' && (
+        <div className="grid gap-4 xl:grid-cols-[1fr_360px]">
+          <Overview lead={lead} statusLabel={statusLabel} />
+          <AiInsightsCard type="lead" entityId={Number(id)} />
+        </div>
+      )}
       {active === 'Historico' && <Card><Timeline type="leads" id={id} /></Card>}
       {active === 'Tarefas' && <SimpleList items={data.tasks} empty="Nenhuma tarefa." render={(item) => <><strong>{item.title}</strong><p className="text-sm text-slate-400">{item.status} · {formatDateTime(item.due_at)}</p></>} />}
       {active === 'Agenda' && <SimpleList items={data.appointments} empty="Nenhum compromisso." render={(item) => <><strong>{item.title}</strong><p className="text-sm text-slate-400">{formatDateTime(item.starts_at)}</p></>} />}

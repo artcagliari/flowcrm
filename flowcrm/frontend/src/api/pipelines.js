@@ -7,6 +7,7 @@ export const listPipelines = pipelines.list;
 export const createPipeline = pipelines.create;
 export const updatePipeline = pipelines.update;
 export const removePipeline = pipelines.remove;
+export const getPipelineBoard = (params) => api.get('/pipelines/board', { params }).then((r) => r.data.data);
 export const listStages = () => api.get('/lead-stages').then((r) => r.data.data);
 export const createStage = (payload) => api.post('/lead-stages', payload).then((r) => r.data.data);
 export const updateStage = (id, payload) => api.put(`/lead-stages/${id}`, payload).then((r) => r.data.data);

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { createStage, listPipelines, listStages, removeStage, updateStage } from '../api/pipelines';
 import useProfessionMode from '../hooks/useProfessionMode';
@@ -25,7 +26,11 @@ export default function PipelineSettings() {
 
   return (
     <>
-      <PageHeader title={config.pipelineLabel} subtitle={config.pipelineSubtitle} />
+      <PageHeader
+        title="Configurar etapas"
+        subtitle={config.pipelineSubtitle}
+        action={<Link to="/pipeline"><Button variant="secondary">Voltar ao Kanban</Button></Link>}
+      />
       <Card className="mb-4">
         <form className="flex flex-wrap gap-3" onSubmit={addStage}>
           <Input label="Nova etapa" value={name} onChange={(e) => setName(e.target.value)} required />
