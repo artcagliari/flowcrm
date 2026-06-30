@@ -62,6 +62,7 @@ return [
             'token' => env('WHATSAPP_META_TOKEN'),
             'phone_number_id' => env('WHATSAPP_META_PHONE_NUMBER_ID'),
             'api_version' => env('WHATSAPP_META_API_VERSION', 'v19.0'),
+            'app_secret' => env('WHATSAPP_META_APP_SECRET'),
         ],
     ],
 

@@ -3,7 +3,7 @@
 Registro das melhorias entregues a partir do [PLANO-INOVACAO.md](./PLANO-INOVACAO.md).
 
 **Data:** junho/2026
-**Fase do roadmap:** Fase 1 — Fundação B2B (núcleo concluído)
+**Fases do roadmap:** Fase 1 — Fundação B2B (núcleo concluído) · Fase 2 — WhatsApp como diferencial (concluída)
 
 ---
 
@@ -102,29 +102,75 @@ Além de:
 
 ---
 
-## 7. Documento de continuidade
+## 7. Fase 2 — WhatsApp como diferencial
+
+### 7.1 Inbox completo (`/whatsapp`)
+- Botão **Nova conversa** com busca de lead/cliente (`EntityAutocomplete`) ou telefone avulso
+- **Templates de mensagem** (`message-templates`) em dropdown no compositor
+- Correção da direção de mensagens (`in`/`out`) e exibição de falha de envio
+- Atalho para a ficha do contato e link para Integrações
+
+### 7.2 Conversa vira CRM automaticamente
+- Webhook de entrada cria **lead automaticamente** para número desconhecido (origem `whatsapp`)
+- Número conhecido é **vinculado ao cliente** existente
+- Registro de **atividade** na timeline do contato
+- Disparo de automação **`whatsapp.message_received`**
+
+**Arquivos:**
+- `backend/app/Services/Whatsapp/WhatsappService.php` (`ensureContactLinked`, `triggerInboundAutomation`, `providerFor`)
+- `backend/app/Services/Whatsapp/WhatsappProviderFactory.php` (novo)
+- `backend/app/Jobs/SendWhatsappMessage.php` (provider por empresa)
+
+### 7.3 Wizard de configuração (Integrações)
+- Seleção de provider: **Log (dev)**, **Evolution API**, **Meta Cloud API**
+- Campos por provider, salvos por empresa (`CompanyIntegration` provider `whatsapp`)
+- Segredos (api_key/token) nunca retornam ao cliente; só indicador "salvo"
+- Botão **Testar conexão** (envia mensagem de teste)
+- Exibição da **URL de webhook** da empresa
+
+**Arquivos:**
+- `frontend/src/pages/Integrations.jsx` (card WhatsApp)
+- `frontend/src/pages/WhatsappInbox.jsx`
+- `frontend/src/components/layout/Sidebar.jsx` (badge de não lidas)
+- `frontend/src/api/whatsapp.js`, `frontend/src/api/templates.js`
+
+### 7.4 Endpoints novos
+
+| Método | Rota | Função |
+|--------|------|--------|
+| GET | `/api/whatsapp/settings` | Configuração atual (sem segredos) |
+| PUT | `/api/whatsapp/settings` | Salvar provider e credenciais |
+| POST | `/api/whatsapp/test` | Enviar mensagem de teste |
+| GET | `/api/whatsapp/unread-count` | Total de não lidas (badge) |
+
+### 7.5 Testes
+4 novos testes em `WhatsappTest.php`: lead automático, vínculo com cliente, automação no inbound, salvar/testar configuração.
+
+---
+
+## 8. Documento de continuidade
 
 Criado [`PROMPTS-DE-MELHORIA.md`](./PROMPTS-DE-MELHORIA.md) com 15+ prompts prontos, organizados por fase, para continuar a evolução (IA com LLM, lead scoring, automações visuais, módulo Contas B2B, PWA).
 
 ---
 
-## 8. Validação
+## 9. Validação
 
-- **Backend:** `php artisan test` → 28 testes passando (126 asserts)
+- **Backend:** `php artisan test` → 32 testes passando (141 asserts)
 - **Frontend:** `npm run build` → build OK
 
 ---
 
-## 9. Mapa do roadmap
+## 10. Mapa do roadmap
 
 | Fase | Status |
 |------|--------|
 | Fase 1 — Fundação B2B | Núcleo concluído (Kanban, dashboard, insights, inbox) |
-| Fase 2 — WhatsApp diferencial | Inbox base entregue; falta templates, auto-CRM, wizard |
+| Fase 2 — WhatsApp diferencial | Concluída (inbox, templates, auto-CRM, wizard, provider por empresa) |
 | Fase 3 — IA Premium | Base por regras entregue; falta LLM, scoring, deal health |
 | Fase 4 — Automação | Pendente (ver prompts) |
 | Fase 5 — Enterprise | Pendente (ver prompts) |
 
 ---
 
-*Próximo passo recomendado: Prompt 1.3 (fluxo Lead → Deal na UI) do `PROMPTS-DE-MELHORIA.md`.*
+*Próximo passo recomendado: Prompt 3.1 (IA com LLM) ou Prompt 1.3 (fluxo Lead → Deal na UI) do `PROMPTS-DE-MELHORIA.md`.*

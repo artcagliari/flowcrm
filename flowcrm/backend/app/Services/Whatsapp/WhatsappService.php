@@ -5,19 +5,47 @@ namespace App\Services\Whatsapp;
 use App\Jobs\SendWhatsappMessage;
 use App\Models\Activity;
 use App\Models\Client;
+use App\Models\CompanyIntegration;
 use App\Models\Lead;
 use App\Models\User;
 use App\Models\WhatsappConversation;
 use App\Models\WhatsappMessage;
+use App\Services\AutomationEngine;
 use App\Support\Phone;
+use Illuminate\Support\Facades\Log;
 
 class WhatsappService
 {
-    public function __construct(private WhatsappProvider $provider) {}
+    public function __construct(
+        private WhatsappProvider $provider,
+        private WhatsappProviderFactory $factory,
+    ) {}
 
     public function provider(): WhatsappProvider
     {
         return $this->provider;
+    }
+
+    /**
+     * Resolve the provider for a specific company, preferring its saved integration
+     * credentials and falling back to the server-wide default provider.
+     */
+    public function providerFor(int $companyId): WhatsappProvider
+    {
+        $integration = CompanyIntegration::where('company_id', $companyId)
+            ->where('provider', 'whatsapp')
+            ->where('is_active', true)
+            ->first();
+
+        if (! $integration || empty($integration->credentials['provider'])) {
+            Log::warning('WhatsApp: empresa sem integracao ativa, usando provider global', [
+                'company_id' => $companyId,
+            ]);
+
+            return $this->provider;
+        }
+
+        return $this->factory->make($this->factory->fromCredentials($integration->credentials));
     }
 
     /**
@@ -78,6 +106,9 @@ class WhatsappService
             'contact_name' => $inbound['contact_name'] ?? null,
         ]);
 
+        // Turn an unknown WhatsApp contact into a CRM lead so the conversation is never orphaned.
+        $this->ensureContactLinked($conversation);
+
         $message = $conversation->messages()->create([
             'direction' => 'in',
             'body' => $inbound['body'] ?? null,
@@ -92,12 +123,53 @@ class WhatsappService
         ]);
 
         $this->logActivity($conversation, 'whatsapp_received', 'Mensagem de WhatsApp recebida: '.\Illuminate\Support\Str::limit((string) ($inbound['body'] ?? '[midia]'), 80), null);
+        $this->triggerInboundAutomation($conversation->fresh());
 
         if (! empty($inbound['body'])) {
             app(WhatsappSchedulingBot::class)->handleInbound($conversation->fresh(), (string) $inbound['body']);
         }
 
         return $message;
+    }
+
+    /**
+     * Ensure a conversation is linked to a client or lead, creating a lead when needed.
+     */
+    public function ensureContactLinked(WhatsappConversation $conversation): void
+    {
+        if ($conversation->client_id || $conversation->lead_id) {
+            return;
+        }
+
+        $lead = Lead::create([
+            'company_id' => $conversation->company_id,
+            'name' => $conversation->contact_name ?: $conversation->phone,
+            'phone' => $conversation->phone,
+            'whatsapp' => $conversation->phone,
+            'origin' => 'whatsapp',
+            'status' => 'novo',
+            'temperature' => 'morno',
+            'last_interaction_at' => now(),
+        ]);
+
+        $conversation->update(['lead_id' => $lead->id]);
+        $conversation->setRelation('lead', $lead);
+    }
+
+    private function triggerInboundAutomation(WhatsappConversation $conversation): void
+    {
+        $subject = $conversation->client ?: $conversation->lead;
+
+        if (! $subject) {
+            return;
+        }
+
+        app(AutomationEngine::class)->trigger(
+            $conversation->company_id,
+            'whatsapp.message_received',
+            $subject,
+            ['conversation_id' => $conversation->id, 'phone' => $conversation->phone],
+        );
     }
 
     private function matchContact(int $companyId, string $phone): array

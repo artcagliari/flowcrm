@@ -5,10 +5,14 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Api\Concerns\RespondsWithJson;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
+use App\Models\CompanyIntegration;
 use App\Models\Lead;
 use App\Models\WhatsappConversation;
+use App\Services\Whatsapp\WhatsappProviderFactory;
 use App\Services\Whatsapp\WhatsappService;
+use App\Support\Phone;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class WhatsappController extends Controller
 {
@@ -28,8 +32,102 @@ class WhatsappController extends Controller
 
         return $this->success([
             'conversations' => $conversations,
-            'provider_online' => $this->service->provider()->isConfigured(),
+            'provider_online' => $this->service->providerFor($companyId)->isConfigured(),
         ]);
+    }
+
+    public function unreadCount(Request $request)
+    {
+        $count = WhatsappConversation::where('company_id', $this->companyId($request))->sum('unread_count');
+
+        return $this->success(['unread' => (int) $count]);
+    }
+
+    public function settings(Request $request, WhatsappProviderFactory $factory)
+    {
+        $companyId = $this->companyId($request);
+        $integration = CompanyIntegration::where('company_id', $companyId)->where('provider', 'whatsapp')->first();
+        $credentials = $integration->credentials ?? [];
+
+        // Never expose secrets back to the client; report only whether they are set.
+        return $this->success([
+            'provider' => $credentials['provider'] ?? 'log',
+            'is_active' => (bool) ($integration->is_active ?? false),
+            'base_url' => $credentials['base_url'] ?? null,
+            'instance' => $credentials['instance'] ?? null,
+            'phone_number_id' => $credentials['phone_number_id'] ?? null,
+            'api_version' => $credentials['api_version'] ?? 'v19.0',
+            'has_api_key' => ! empty($credentials['api_key']),
+            'has_token' => ! empty($credentials['token']),
+            'webhook_url' => url("/api/webhooks/whatsapp/{$companyId}"),
+            'verify_token_configured' => ! empty(config('services.whatsapp.webhook_token')),
+            'meta_app_secret_configured' => ! empty(config('services.whatsapp.meta.app_secret')),
+            'provider_online' => $this->service->providerFor($companyId)->isConfigured(),
+        ]);
+    }
+
+    public function saveSettings(Request $request)
+    {
+        $companyId = $this->companyId($request);
+        $data = $request->validate([
+            'provider' => ['required', Rule::in(['log', 'evolution', 'meta'])],
+            'is_active' => ['boolean'],
+            'base_url' => ['nullable', 'string', 'max:255'],
+            'api_key' => ['nullable', 'string', 'max:255'],
+            'instance' => ['nullable', 'string', 'max:120'],
+            'token' => ['nullable', 'string', 'max:1024'],
+            'phone_number_id' => ['nullable', 'string', 'max:120'],
+            'api_version' => ['nullable', 'string', 'max:16'],
+        ]);
+
+        $existing = CompanyIntegration::where('company_id', $companyId)->where('provider', 'whatsapp')->first();
+        $credentials = $existing->credentials ?? [];
+
+        $credentials['provider'] = $data['provider'];
+        foreach (['base_url', 'instance', 'phone_number_id', 'api_version'] as $field) {
+            if (array_key_exists($field, $data)) {
+                $credentials[$field] = $data[$field];
+            }
+        }
+        // Only overwrite secrets when a new value is provided, so saving the form does not wipe them.
+        foreach (['api_key', 'token'] as $secret) {
+            if (! empty($data[$secret])) {
+                $credentials[$secret] = $data[$secret];
+            }
+        }
+
+        $integration = CompanyIntegration::updateOrCreate(
+            ['company_id' => $companyId, 'provider' => 'whatsapp'],
+            ['credentials' => $credentials, 'is_active' => $data['is_active'] ?? false],
+        );
+
+        return $this->success([
+            'provider' => $credentials['provider'],
+            'is_active' => (bool) $integration->is_active,
+            'provider_online' => $this->service->providerFor($companyId)->isConfigured(),
+        ], 'Configuracao do WhatsApp salva.');
+    }
+
+    public function test(Request $request)
+    {
+        $companyId = $this->companyId($request);
+        $data = $request->validate(['phone' => ['required', 'string', 'max:32']]);
+
+        $phone = Phone::normalizeBr($data['phone']);
+        abort_if($phone === null, 422, 'Numero de WhatsApp invalido.');
+
+        $provider = $this->service->providerFor($companyId);
+
+        try {
+            $result = $provider->sendText($phone, 'Mensagem de teste do FlowCRM. Integracao funcionando!');
+
+            return $this->success([
+                'status' => $result['status'] ?? 'sent',
+                'configured' => $provider->isConfigured(),
+            ], $provider->isConfigured() ? 'Mensagem de teste enviada.' : 'Provider em modo log: mensagem registrada, nao entregue.');
+        } catch (\Throwable $e) {
+            return $this->error('Falha ao enviar teste: '.$e->getMessage(), [], 422);
+        }
     }
 
     public function messages(Request $request, WhatsappConversation $conversation)

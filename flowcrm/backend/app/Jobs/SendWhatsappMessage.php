@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\WhatsappMessage;
-use App\Services\Whatsapp\WhatsappProvider;
+use App\Services\Whatsapp\WhatsappService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -20,7 +20,7 @@ class SendWhatsappMessage implements ShouldQueue
 
     public function __construct(public int $messageId) {}
 
-    public function handle(WhatsappProvider $provider): void
+    public function handle(WhatsappService $whatsapp): void
     {
         $message = WhatsappMessage::with('conversation')->find($this->messageId);
 
@@ -29,6 +29,7 @@ class SendWhatsappMessage implements ShouldQueue
         }
 
         try {
+            $provider = $whatsapp->providerFor($message->conversation->company_id);
             $result = $provider->sendText($message->conversation->phone, (string) $message->body);
             $message->update([
                 'status' => $result['status'] ?? 'sent',

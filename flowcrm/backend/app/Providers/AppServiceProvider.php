@@ -42,14 +42,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(WhatsappProvider::class, function () {
-            $config = config('services.whatsapp');
-
-            return match ($config['provider'] ?? 'log') {
-                'evolution' => new EvolutionApiProvider($config['evolution'] ?? []),
-                'meta' => new MetaCloudApiProvider($config['meta'] ?? []),
-                default => new LogWhatsappProvider(),
-            };
+        $this->app->singleton(WhatsappProvider::class, function ($app) {
+            return $app->make(\App\Services\Whatsapp\WhatsappProviderFactory::class)
+                ->make(config('services.whatsapp') ?? []);
         });
     }
 

@@ -46,7 +46,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('openapi.json', OpenApiController::class);
 Route::get('integrations/google-calendar/callback', [IntegrationController::class, 'googleCalendarCallback']);
 Route::post('login', [AuthController::class, 'login']);
-Route::post('webhooks/whatsapp/{company}', WhatsappWebhookController::class);
+Route::get('webhooks/whatsapp/{company}', [WhatsappWebhookController::class, 'verify']);
+Route::post('webhooks/whatsapp/{company}', [WhatsappWebhookController::class, 'receive']);
 Route::post('webhooks/stripe', StripeWebhookController::class);
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -106,6 +107,10 @@ Route::middleware(['auth:sanctum', 'current.company'])->group(function () {
 
     Route::get('reports/pdf', ReportPdfController::class);
 
+    Route::get('whatsapp/settings', [WhatsappController::class, 'settings']);
+    Route::put('whatsapp/settings', [WhatsappController::class, 'saveSettings']);
+    Route::post('whatsapp/test', [WhatsappController::class, 'test']);
+    Route::get('whatsapp/unread-count', [WhatsappController::class, 'unreadCount']);
     Route::get('whatsapp/conversations', [WhatsappController::class, 'index']);
     Route::post('whatsapp/conversations/start', [WhatsappController::class, 'start']);
     Route::get('whatsapp/conversations/{conversation}/messages', [WhatsappController::class, 'messages']);
